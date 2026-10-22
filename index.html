@@ -210,6 +210,41 @@ body .pay-actions button{border-radius:14px;background:rgba(8,20,36,.6);color:#f
 body .pay-form input{background:rgba(5,12,22,.6);border-radius:14px;border:1px solid rgba(255,255,255,.2)}
 body .pay-form button{min-height:52px;border-radius:99px;font-size:16px;
   background:linear-gradient(135deg,#34e5a0,#1fb980);color:#04251a;box-shadow:0 8px 24px rgba(52,229,160,.4)}
+
+/* ===== Group-only chat page ===== */
+.ea-hide{display:none!important}
+.ea-room{
+  position:relative;
+  background:linear-gradient(135deg,rgba(6,18,32,.74),rgba(8,34,42,.58))!important;
+  border:1px solid rgba(52,229,160,.4)!important;
+  border-radius:24px!important;
+  padding:16px!important;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  box-shadow:0 12px 34px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.1)!important;
+  overflow:hidden;
+}
+.ea-room::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#34e5a0,#66b8ff)}
+.ea-room:active{transform:scale(.985)}
+.ea-avatar{
+  width:62px!important;height:62px!important;flex:0 0 62px!important;
+  border-radius:50%!important;display:grid!important;place-items:center!important;
+  background:radial-gradient(circle at 30% 25%,#12384a,#06101c 70%)!important;
+  color:#34e5a0!important;font-weight:900!important;font-style:italic;font-size:22px!important;
+  letter-spacing:-1px;box-shadow:0 0 0 3px #34e5a0,0 0 0 6px rgba(52,229,160,.18),0 0 26px rgba(52,229,160,.55)!important;
+  object-fit:contain;padding:6px;
+}
+.ea-live{background:#34e5a0!important;box-shadow:0 0 0 3px #06101c,0 0 12px #34e5a0!important;animation:eaPulse 1.6s infinite}
+@keyframes eaPulse{50%{transform:scale(1.25);opacity:.7}}
+.ea-title{font-size:18px!important;font-weight:900!important;letter-spacing:.2px;color:#fff!important}
+.ea-badge{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:3px 9px;border-radius:99px;font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#04251a;background:linear-gradient(135deg,#34e5a0,#8dffd0);vertical-align:middle}
+.ea-badge svg{width:11px;height:11px}
+.ea-badge.admin{background:linear-gradient(135deg,#ffcf70,#ffb02e)}
+.ea-voice{display:inline-flex!important;align-items:center;gap:8px;margin-top:6px;padding:5px 12px 5px 6px;border-radius:99px;background:rgba(52,229,160,.14);border:1px solid rgba(52,229,160,.45);color:#d9fff0!important;font-weight:700;font-size:13px}
+.ea-mic{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#34e5a0;color:#04251a;flex:0 0 24px}
+.ea-mic svg{width:13px;height:13px}
+button .ea-mic{width:auto;height:auto;background:none;color:inherit}
+button .ea-mic svg{width:22px;height:22px}
+
 </style></head><body class="intro-active"><div id="introLoader" role="status" aria-live="polite" style="display:none"><div class="loader-title">eFootball Kenya Tournament</div><div class="loader-track"><span></span></div><div class="loader-dots">LOADING • LOADING • LOADING</div></div><section id="registerSplash" class="visible" aria-label="Welcome to eFootball Arena Kenya"><img class="splash-poster" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBwgHBgkIBwgKCgkLDRYPDQwM
 DRsUFRAWIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5OjcB
 CgoKDQwNGg8PGjclHyU3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3
@@ -2061,4 +2096,60 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
     },{once:true});
   });
 })();
-</script></body></html>
+</script>
+<script id="arena-group-only-chat">
+(function(){
+  var MIC='<span class="ea-mic"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 15a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 0 0-7 0v5.5A3.5 3.5 0 0 0 12 15zm6-3.5a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.9V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.6a6 6 0 0 0 5-5.9z"/></svg></span>';
+  var CHECK='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
+  function leaf(re,root){
+    return Array.prototype.filter.call((root||document).querySelectorAll('*'),function(e){
+      return !e.children.length && re.test(e.textContent.trim()) && !e.closest('.bottom-nav,nav');
+    });
+  }
+  function run(){
+    var s=document.querySelector('input[placeholder*="Search chats" i]');
+    if(s){var p=s.parentElement;if(p)p.classList.add('ea-hide');}
+    var chips=leaf(/^(All|Groups|Direct|Unread)$/).filter(function(e){return e.tagName==='BUTTON';});
+    if(chips.length&&chips[0].parentElement)chips[0].parentElement.classList.add('ea-hide');
+    document.querySelectorAll('button').forEach(function(b){
+      if(b.textContent.trim()==='+'&&getComputedStyle(b).position==='fixed')b.classList.add('ea-hide');
+    });
+    leaf(/^Chats$/).forEach(function(e){if(!e.dataset.ea){e.dataset.ea='1';e.textContent='Community';}});
+    leaf(/^Your squad, one tap away\.?$/).forEach(function(e){if(!e.dataset.ea){e.dataset.ea='1';e.textContent='Official player group';}});
+    leaf(/Players community/i).forEach(function(sub){
+      var row=sub.closest('button,a,[role="button"],li,[onclick],[data-room],[data-chat]')||sub.parentElement?.parentElement?.parentElement;
+      if(!row||row.dataset.eaRoom)return;
+      row.dataset.eaRoom='1';row.classList.add('ea-room');
+      var av=leaf(/^EA$/,row)[0]||row.querySelector('img');
+      if(av){
+        av.classList.add('ea-avatar');
+        var parent=av.parentElement;
+        var live=parent&&Array.prototype.filter.call(parent.querySelectorAll('*'),function(e){
+          return e!==av&&!e.children.length&&!e.textContent.trim()&&e.offsetWidth<22&&e.offsetWidth>0;
+        })[0];
+        if(live)live.classList.add('ea-live');
+      }
+      var title=leaf(/^eFootball 254$/,row)[0];
+      if(title&&!title.querySelector('.ea-badge')){
+        title.classList.add('ea-title');
+        var b=document.createElement('span');b.className='ea-badge';b.innerHTML=CHECK+'Official';title.appendChild(b);
+      }
+      sub.textContent='Players community · Admin group';
+    });
+    leaf(/Voice message/i,document.querySelector('.ea-room')||document).forEach(function(e){
+      if(e.classList.contains('ea-voice'))return;
+      e.classList.add('ea-voice');e.innerHTML=MIC+'<span>Voice message</span>';
+    });
+    document.querySelectorAll('button').forEach(function(b){
+      if(/^[🎤🎙️🎙]+$/.test(b.textContent.trim()))b.innerHTML=MIC;
+    });
+  }
+  var t;
+  var observer=new MutationObserver(function(){clearTimeout(t);t=setTimeout(run,160);});
+  function start(){run();if(document.body&&!observer._eaStarted){observer.observe(document.body,{childList:true,subtree:true});observer._eaStarted=true;}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+  window.addEventListener('load',run);
+})();
+</script>
+
+</body></html>
