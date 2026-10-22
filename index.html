@@ -2009,4 +2009,56 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
     .observe(document.body,{childList:true,subtree:true});
   window.addEventListener('load',flatten); flatten();
 })();
+</script><script id="arena-welcome-cheer">
+(function(){
+  function cheer(){
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    var ctx=new AC(), t=ctx.currentTime;
+    var master=ctx.createGain(); master.gain.value=.9; master.connect(ctx.destination);
+
+    // crowd roar: filtered noise that swells then fades
+    var len=ctx.sampleRate*3.5, buf=ctx.createBuffer(1,len,ctx.sampleRate), d=buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
+    var src=ctx.createBufferSource(); src.buffer=buf;
+    var bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=.7;
+    bp.frequency.setValueAtTime(600,t+.5); bp.frequency.linearRampToValueAtTime(1500,t+1.6);
+    var g=ctx.createGain();
+    g.gain.setValueAtTime(0,t+.5);
+    g.gain.linearRampToValueAtTime(.55,t+1.4);
+    g.gain.exponentialRampToValueAtTime(.001,t+3.5);
+    src.connect(bp); bp.connect(g); g.connect(master); src.start(t+.5);
+
+    // referee whistle: two blasts with vibrato
+    [0,.45].forEach(function(off,n){
+      var o=ctx.createOscillator(); o.type='sine'; o.frequency.value=n?3000:2800;
+      var lfo=ctx.createOscillator(), lg=ctx.createGain(); lfo.frequency.value=30; lg.gain.value=60;
+      lfo.connect(lg); lg.connect(o.frequency);
+      var wg=ctx.createGain(); wg.gain.setValueAtTime(0,t+off);
+      wg.gain.linearRampToValueAtTime(.22,t+off+.03);
+      wg.gain.setValueAtTime(.22,t+off+(n?.4:.2));
+      wg.gain.linearRampToValueAtTime(0,t+off+(n?.5:.28));
+      o.connect(wg); wg.connect(master);
+      o.start(t+off); lfo.start(t+off); o.stop(t+off+.6); lfo.stop(t+off+.6);
+    });
+
+    setTimeout(function(){
+      try{
+        var u=new SpeechSynthesisUtterance('Welcome to eFootball Arena 254 Kenya. Let the games begin!');
+        u.rate=.95; u.pitch=.9; u.volume=1; speechSynthesis.speak(u);
+      }catch(e){}
+    },1500);
+    window.setTimeout(function(){try{ctx.close()}catch(e){}},4500);
+  }
+
+  window.playArenaSound=function(force){
+    if(!force && (localStorage.getItem('arenaSound')==='off' || sessionStorage.getItem('arenaPlayed'))) return;
+    sessionStorage.setItem('arenaPlayed','1'); cheer();
+  };
+
+  ['pointerdown','keydown'].forEach(function(ev){
+    window.addEventListener(ev,function once(){
+      window.removeEventListener(ev,once); window.playArenaSound();
+    },{once:true});
+  });
+})();
 </script></body></html>
