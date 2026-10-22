@@ -51,6 +51,18 @@ button:not(.secondary){background:linear-gradient(110deg,#ffd21f,#ffb900);color:
 a{color:#7fc1ff}
 input,select{accent-color:#ffd21f}
 @media(max-width:700px){.nav{border-radius:15px;padding:10px}.logo{width:45px;height:45px}.brandname{font-size:15px}.arena-hero{background-position:center;min-height:62vh}.panel{border-radius:17px}}
+
+/* Correct requested background and keep gold limited to the logo */
+body:before{background-image:linear-gradient(90deg,rgba(2,8,23,.58),rgba(2,8,23,.28) 50%,rgba(2,8,23,.68)),url("https://prcdn.freetls.fastly.net/release_image/50711/1424/20260604/1920x1080.jpg?width=1920&quality=85&format=jpeg");background-size:cover;background-position:center;background-repeat:no-repeat;filter:blur(1px) brightness(.55) saturate(1.1);transform:scale(1.02)}
+body:after{background:linear-gradient(180deg,rgba(2,8,23,.20),rgba(2,8,23,.62) 55%,rgba(2,8,23,.90))}
+button:not(.secondary){background:var(--green);color:#062018}
+.main-nav.bottom-nav button.active{background:var(--green);color:#062018;box-shadow:none}
+.eyebrow,.hero-tag{color:var(--green);border-color:#3de0a177}
+.pill.gold{background:#47371b;color:var(--gold);border-color:#8c6c12}
+.pill{background:#1b3a4a;color:var(--green);border-color:var(--line)}
+.tournament,.panel,.feature-card,.widget,.payment-panel,.section,.admin-payment-row{border-color:var(--line)}
+.logo{background:#ffca05;color:#06132b;border-color:#ffdc42}
+.brand .small{color:#ffd21f!important}
 </style></head><body class="intro-active"><div id="introLoader" role="status" aria-live="polite" style="display:none"><div class="loader-title">eFootball Kenya Tournament</div><div class="loader-track"><span></span></div><div class="loader-dots">LOADING • LOADING • LOADING</div></div><section id="registerSplash" class="visible" aria-label="Welcome to eFootball Arena Kenya"><img class="splash-poster" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBwgHBgkIBwgKCgkLDRYPDQwM
 DRsUFRAWIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5OjcB
 CgoKDQwNGg8PGjclHyU3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3
