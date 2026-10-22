@@ -143,7 +143,74 @@ body::after{
 .send-new{width:48px;height:48px;padding:0;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#34e5a0,#1fb980);color:#04251a;box-shadow:0 6px 18px rgba(52,229,160,.35);transition:transform .15s}
 .send-new:active{transform:scale(.92)}
 </style>
-</head><body class="intro-active"><div id="introLoader" role="status" aria-live="polite" style="display:none"><div class="loader-title">eFootball Kenya Tournament</div><div class="loader-track"><span></span></div><div class="loader-dots">LOADING • LOADING • LOADING</div></div><section id="registerSplash" class="visible" aria-label="Welcome to eFootball Arena Kenya"><img class="splash-poster" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBwgHBgkIBwgKCgkLDRYPDQwM
+<style id="arena-home-matchday-refresh">
+/* ===== 1. Poster: players clearly visible (poster.jpg1 only) ===== */
+body::after{
+  inset:-8px !important;
+  background:
+    linear-gradient(180deg,rgba(5,11,20,.5) 0%,rgba(5,11,20,0) 22%,rgba(5,11,20,0) 50%,rgba(5,11,20,.88) 100%),
+    url('poster.jpg1') center top/cover no-repeat !important;
+  filter:blur(1.5px) saturate(1.2) !important;
+}
+
+/* ===== 2. See-through cards ===== */
+body .panel,body .widget,body .tournament,body .stat{
+  background:rgba(6,16,30,.38) !important;
+  backdrop-filter:blur(8px) !important;
+  -webkit-backdrop-filter:blur(8px) !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  border-radius:22px !important;
+  box-shadow:0 10px 30px rgba(0,0,0,.35) !important;
+}
+@keyframes livePulse{50%{opacity:.35;transform:scale(1.4)}}
+
+/* ===== 3. HOME: matchday hero ===== */
+#homePage{margin-top:30vh}
+#homePage .panel{background:transparent !important;border:0 !important;box-shadow:none !important;
+  backdrop-filter:none !important;-webkit-backdrop-filter:none !important;padding:4px !important}
+#homePage .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;
+  background:rgba(52,229,160,.15);border:1px solid rgba(52,229,160,.55);color:#34e5a0;letter-spacing:2px}
+#homePage .eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:#34e5a0;
+  box-shadow:0 0 10px #34e5a0;animation:livePulse 1.4s infinite}
+#homePage h1{font-size:clamp(34px,10vw,54px);font-weight:900;font-style:italic;text-transform:uppercase;
+  line-height:.98;letter-spacing:-1px;margin:14px 0 10px;text-shadow:0 4px 24px rgba(0,0,0,.8)}
+#homePage p{color:#e6f2ff;font-size:15px;max-width:420px;text-shadow:0 2px 10px rgba(0,0,0,.9)}
+#homePage button{flex:1 1 140px;border-radius:16px;padding:13px 14px;font-weight:800;
+  background:rgba(8,20,36,.55);color:#fff;border:1px solid rgba(255,255,255,.22);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#homePage button:first-of-type{flex:1 1 100%;min-height:56px;font-size:17px;
+  background:linear-gradient(135deg,#34e5a0,#1fb980);color:#04251a;border:0;
+  box-shadow:0 8px 26px rgba(52,229,160,.45)}
+
+/* ===== 4. PROFILE / DASHBOARD: compact tiles ===== */
+body .widget-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:10px !important}
+body .widget{min-height:0 !important;padding:14px !important;display:flex;flex-direction:column;gap:4px}
+body .widget .wicon{width:40px;height:40px;display:grid;place-items:center;font-size:20px;margin:0 0 4px;
+  border-radius:12px;background:rgba(52,229,160,.14);border:1px solid rgba(52,229,160,.35)}
+body .widget h3{font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;margin:0}
+body .widget .wvalue{font-size:34px;font-weight:900;line-height:1;color:#34e5a0;text-shadow:0 0 18px rgba(52,229,160,.55)}
+body .widget p{font-size:12px;line-height:1.35;margin:0 0 6px;color:#cfe0f2;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+body .widget button{margin-top:auto;width:100%;padding:9px 8px;font-size:13px;border-radius:12px;
+  background:rgba(52,229,160,.16);color:#d9fff0;border:1px solid rgba(52,229,160,.5)}
+
+/* ===== 5. TOURNAMENTS: match cards ===== */
+body .tournament{position:relative;overflow:hidden;padding:18px !important}
+body .tournament::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;
+  background:linear-gradient(90deg,#34e5a0,#66b8ff,#ffcf70)}
+body .tournament h3{font-size:20px;font-weight:900;font-style:italic;text-transform:uppercase;
+  letter-spacing:-.3px;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+body .pill{background:rgba(8,20,36,.6) !important;border:1px solid rgba(255,255,255,.2);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+body .countdown-wrap{background:rgba(5,12,22,.4);border-radius:16px;padding:10px 12px}
+body .payment-panel{background:rgba(52,229,160,.08) !important;border:1px dashed rgba(52,229,160,.55) !important;
+  box-shadow:none !important;border-radius:18px !important}
+body .payment-number{font-size:30px;letter-spacing:.08em;text-shadow:0 0 18px rgba(52,229,160,.5)}
+body .pay-actions button{border-radius:14px;background:rgba(8,20,36,.6);color:#fff;border:1px solid rgba(255,255,255,.2)}
+body .pay-form input{background:rgba(5,12,22,.6);border-radius:14px;border:1px solid rgba(255,255,255,.2)}
+body .pay-form button{min-height:52px;border-radius:99px;font-size:16px;
+  background:linear-gradient(135deg,#34e5a0,#1fb980);color:#04251a;box-shadow:0 8px 24px rgba(52,229,160,.4)}
+</style></head><body class="intro-active"><div id="introLoader" role="status" aria-live="polite" style="display:none"><div class="loader-title">eFootball Kenya Tournament</div><div class="loader-track"><span></span></div><div class="loader-dots">LOADING • LOADING • LOADING</div></div><section id="registerSplash" class="visible" aria-label="Welcome to eFootball Arena Kenya"><img class="splash-poster" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBwgHBgkIBwgKCgkLDRYPDQwM
 DRsUFRAWIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5OjcB
 CgoKDQwNGg8PGjclHyU3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3
 Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3N//AABEIAfUBjwMBEQACEQEDEQH/xAAcAAAC
