@@ -2256,52 +2256,65 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
 
 <script id="arena-ui-sound-effects">
 (function(){
-  var KEY='arenaSound', TARGET=.2, ctx=null, master=null, bg=null, ft=null, unlocked=false, last=0;
+  var KEY='arenaSound', TARGET=.2, bg=null, ft=null, last=0, unlocked=false, fadeTimer=null;
   function on(){try{return localStorage.getItem(KEY)!=='off';}catch(e){return true;}}
-  function audioContext(){
-    if(!ctx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;ctx=new AC();master=ctx.createGain();master.gain.value=.5;master.connect(ctx.destination);}
-    if(ctx.state==='suspended')ctx.resume().catch(function(){});
-    return ctx;
+  function fade(to,ms){
+    if(!bg)return;clearInterval(ft);var from=bg.volume,steps=Math.max(1,Math.ceil(ms/50)),i=0;
+    ft=setInterval(function(){i++;if(!bg)return;bg.volume=Math.max(0,Math.min(1,from+(to-from)*i/steps));if(i>=steps)clearInterval(ft);},50);
+  }
+  function startBg(){
+    if(!on())return;
+    if(!bg){
+      bg=new Audio(new URL('pg.mp3',document.baseURI).href);
+      bg.loop=true;bg.preload='auto';bg.volume=0;
+      bg.addEventListener('error',function(){console.warn('Background music failed to load. Check pg.mp3 path and format.',bg.error);});
+    }
+    var p=bg.play();
+    if(p&&p.then)p.then(function(){fade(TARGET,1000);}).catch(function(err){console.warn('Background music playback blocked; tap the page again.',err);});
+    else fade(TARGET,1000);
+  }
+  function stopBg(){if(bg){fade(0,250);clearTimeout(fadeTimer);fadeTimer=setTimeout(function(){if(bg&&!on())bg.pause();},300);}}
+  function ac(){
+    var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+    if(!ac.ctx){ac.ctx=new AC();ac.master=ac.ctx.createGain();ac.master.gain.value=.5;ac.master.connect(ac.ctx.destination);}
+    if(ac.ctx.state==='suspended')ac.ctx.resume().catch(function(){});
+    return ac.ctx;
   }
   function blip(f1,f2,dur,type,vol,when,lp){
-    var c=audioContext();if(!c||!master)return;
+    var c=ac();if(!c||!ac.master)return;
     var t=c.currentTime+(when||0),o=c.createOscillator(),g=c.createGain(),out=g;
     o.type=type||'sine';o.frequency.setValueAtTime(f1,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
     g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(vol||.4,t+.004);g.gain.exponentialRampToValueAtTime(.001,t+dur);
-    o.connect(g);if(lp){var f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;g.connect(f);out=f;}out.connect(master);o.start(t);o.stop(t+dur+.03);
+    o.connect(g);if(lp){var f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;g.connect(f);out=f;}out.connect(ac.master);o.start(t);o.stop(t+dur+.03);
   }
   function whoosh(dur,vol){
-    var c=audioContext();if(!c)return;var n=Math.floor(c.sampleRate*dur),buf=c.createBuffer(1,n,c.sampleRate),d=buf.getChannelData(0);
+    var c=ac();if(!c||!ac.master)return;var n=Math.floor(c.sampleRate*dur),buf=c.createBuffer(1,n,c.sampleRate),d=buf.getChannelData(0);
     for(var i=0;i<n;i++)d[i]=Math.random()*2-1;
     var src=c.createBufferSource();src.buffer=buf;var f=c.createBiquadFilter();f.type='bandpass';f.Q.value=1.2;
     var t=c.currentTime;f.frequency.setValueAtTime(500,t);f.frequency.exponentialRampToValueAtTime(3500,t+dur);
-    var g=c.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);src.connect(f);f.connect(g);g.connect(master);src.start(t);
+    var g=c.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);src.connect(f);f.connect(g);g.connect(ac.master);src.start(t);
   }
   var FX={tap:function(){blip(900,1500,.06,'triangle',.4);},nav:function(){whoosh(.09,.3);blip(600,1100,.08,'sine',.35,.02);},confirm:function(){blip(110,330,.2,'sawtooth',.22,0,1200);blip(700,900,.08,'triangle',.4);blip(1050,1400,.14,'triangle',.45,.07);},back:function(){blip(900,450,.1,'triangle',.38);}};
   function kind(el){var t=(el.textContent||'').trim();if(el.closest('.bottom-nav,nav'))return'nav';if(el.classList.contains('ea-dclose')||/cancel|close|back|hide|sign\s*out|log\s*out|delete|remove/i.test(t))return'back';if(el.classList.contains('ea-join')||el.classList.contains('send-new')||/join|submit|pay|send|confirm|save|start|play|sign\s*in|log\s*in|register|create|generate/i.test(t))return'confirm';return'tap';}
   var SEL='button,a[href],[role="button"],.widget,.ea-row,.ea-ditem,summary,select,label[for]';
-  function fade(to,ms){if(!bg)return;clearInterval(ft);var from=bg.volume,steps=Math.max(1,ms/50),i=0;ft=setInterval(function(){i++;bg.volume=Math.max(0,Math.min(1,from+(to-from)*i/steps));if(i>=steps)clearInterval(ft);},50);}
-  function startBg(){
-    if(!on())return;
-    if(!bg){bg=new Audio(new URL('pg.mp3',document.baseURI).href);bg.loop=true;bg.preload='auto';bg.volume=0;bg.addEventListener('error',function(){console.warn('Arena background audio failed to load:',bg.error&&bg.error.message);});}
-    var p=bg.play();
-    if(p&&p.then)p.then(function(){fade(TARGET,1200);}).catch(function(err){console.warn('Arena background audio playback blocked:',err);});
-    else fade(TARGET,1200);
-  }
-  function stopBg(){if(bg){fade(0,250);setTimeout(function(){if(bg&& !on())bg.pause();},300);}}
   document.addEventListener('pointerdown',function(e){
-    if(!unlocked){unlocked=true;audioContext();if(on())startBg();}
     if(!on())return;var el=e.target.closest&&e.target.closest(SEL);if(!el||el.disabled)return;
-    var now=Date.now();if(now-last<40)return;last=now;FX[kind(el)]();if(navigator.vibrate)navigator.vibrate(8);
+    var now=Date.now();if(now-last<40)return;last=now;try{FX[kind(el)]();if(navigator.vibrate)navigator.vibrate(8);}catch(err){}
   },true);
-  document.addEventListener('keydown',function(){if(!unlocked){unlocked=true;if(on())startBg();}audioContext();},{once:true,passive:true});
-  document.addEventListener('play',function(e){if(e.target.tagName==='AUDIO'&&e.target!==bg&&on())fade(.05,300);},true);
-  function restore(){var busy=[].some.call(document.querySelectorAll('audio'),function(a){return a!==bg&&!a.paused;});if(!busy&&on())fade(TARGET,700);}
+  function unlock(){if(!on())return;unlocked=true;startBg();ac();}
+  ['pointerup','touchend','click','keydown'].forEach(function(ev){document.addEventListener(ev,unlock,true);});
+  document.addEventListener('play',function(e){if(e.target.tagName==='AUDIO'&&e.target!==bg&&on())fade(.05,250);},true);
+  function restore(){var busy=[].some.call(document.querySelectorAll('audio'),function(a){return a!==bg&&!a.paused;});if(!busy&&on()&&bg&&!bg.paused)fade(TARGET,700);}
   document.addEventListener('pause',restore,true);document.addEventListener('ended',restore,true);
   document.addEventListener('visibilitychange',function(){if(!bg)return;if(document.hidden)bg.pause();else if(on()&&unlocked)startBg();});
   function label(){var el=document.getElementById('eaSoundTxt');if(el)el.textContent='Sound: '+(on()?'On':'Off');}
-  function setOn(v){try{localStorage.setItem(KEY,v?'on':'off');}catch(e){}if(v){unlocked=true;audioContext();startBg();}else stopBg();label();}
-  function inject(){var foot=document.querySelector('#eaDrawer .ea-dfoot');if(!foot||document.getElementById('eaSoundRow'))return;var b=document.createElement('button');b.type='button';b.id='eaSoundRow';b.className='ea-ditem';b.innerHTML='<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></span><span id="eaSoundTxt"></span>';b.onclick=function(){setOn(!on());};foot.insertBefore(b,foot.firstChild);label();}
+  function setOn(v){try{localStorage.setItem(KEY,v?'on':'off');}catch(e){}if(v){unlocked=true;startBg();ac();}else stopBg();label();}
+  function inject(){
+    var foot=document.querySelector('#eaDrawer .ea-dfoot');if(!foot||document.getElementById('eaSoundRow'))return;
+    var b=document.createElement('button');b.type='button';b.id='eaSoundRow';b.className='ea-ditem';
+    b.innerHTML='<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></span><span id="eaSoundTxt"></span>';
+    b.onclick=function(){setOn(!on());};foot.insertBefore(b,foot.firstChild);label();
+  }
   window.addEventListener('load',function(){inject();setTimeout(inject,800);setTimeout(inject,2000);});
   inject();
 })();
