@@ -2039,14 +2039,15 @@ const box=$('bracketOverviewList');if(!box)return;
 if(!currentUser){box.className='empty';box.textContent='Sign in to view the pilot bracket.';return}
 const {data:t,error:te}=await sb.from('tournaments').select('id,title,status,registration_closes_at').eq('id','c1dcf981-e97e-45fe-b93d-f4d1d37e740e').maybeSingle();
 if(te||!t){box.className='empty';box.textContent='The pilot tournament is not available yet.';return}
-if(currentUser.app_metadata?.role==='admin'){
+const bracketPreviewUser=String(currentUser.user_metadata?.username||'').toLowerCase()==='jaden'||String(currentUser.user_metadata?.display_name||'').toLowerCase()==='jaden'||currentUser.app_metadata?.role==='admin'||String(currentUser.user_metadata?.username||'').toLowerCase()==='dogo_gee';
+if(bracketPreviewUser){
  const {data:existingPreviewMatches,error:previewCheckError}=await sb.from('matches').select('id').eq('tournament_id',t.id).limit(1);
  if(!previewCheckError&&!existingPreviewMatches?.length){
   const {count:confirmedCount,error:confirmedCountError}=await sb.from('registrations').select('id',{count:'exact',head:true}).eq('tournament_id',t.id).eq('status','registered');
   if(!confirmedCountError&&Number(confirmedCount||0)<2){
   const previewRounds=[['Round of 64',32],['Round of 32',16],['Round of 16',8],['Quarter-finals',4],['Semi-finals',2],['Final',1]];
   box.className='';
-  box.innerHTML='<div class="notice"><strong>ADMIN PREVIEW ONLY</strong><p class="small">This is a visual preview with placeholder players. It does not create fixtures, register players, or publish results.</p></div>'+previewRounds.map(([label,count],ri)=>'<div class="section"><h3>'+label+' <span class="pill blue">'+count+' matches</span></h3><div class="grid">'+Array.from({length:count},(_,i)=>'<article class="tournament"><span class="pill">Preview · Match '+(i+1)+'</span><div class="small muted">Entry '+(i*2+1)+' <strong>Player '+(i*2+1)+'</strong></div><div class="small muted">Entry '+(i*2+2)+' <strong>Player '+(i*2+2)+'</strong></div><p class="small">— : —</p></article>').join('')+'</div></div>').join('')+'<div class="section"><h3>Third-place playoff <span class="pill gold">Preview</span></h3><article class="tournament"><strong>Semi-final loser 1</strong><p class="small">— : —</p><strong>Semi-final loser 2</strong></article></div>';
+  box.innerHTML='<div class="notice"><strong>PRIVATE BRACKET PREVIEW</strong><p class="small">Preview access is limited to the administrator and Jaden. Placeholder players are for layout testing only; this does not create fixtures, register players, or publish results.</p></div>'+previewRounds.map(([label,count],ri)=>'<div class="section"><h3>'+label+' <span class="pill blue">'+count+' matches</span></h3><div class="grid">'+Array.from({length:count},(_,i)=>'<article class="tournament"><span class="pill">Preview · Match '+(i+1)+'</span><div class="small muted">Entry '+(i*2+1)+' <strong>Player '+(i*2+1)+'</strong></div><div class="small muted">Entry '+(i*2+2)+' <strong>Player '+(i*2+2)+'</strong></div><p class="small">— : —</p></article>').join('')+'</div></div>').join('')+'<div class="section"><h3>Third-place playoff <span class="pill gold">Preview</span></h3><article class="tournament"><strong>Semi-final loser 1</strong><p class="small">— : —</p><strong>Semi-final loser 2</strong></article></div>';
   return;
   }
  }
