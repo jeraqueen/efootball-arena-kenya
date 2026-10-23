@@ -120,14 +120,22 @@ body.chat-open::before,body.chat-open::after{background-attachment:fixed!importa
  position:fixed!important;inset:0!important;z-index:2147483000!important;
  display:block!important;width:100vw!important;height:100vh!important;height:100dvh!important;
  max-width:none!important;min-height:0!important;margin:0!important;padding:0!important;
- overflow:hidden!important;background:#061322!important;isolation:isolate!important;
+ overflow:hidden!important;
+ background:#061322 url("https://raw.githubusercontent.com/jeraqueen/efootball-arena-kenya/main/poster.jpg1") center center/cover no-repeat fixed!important;
+ isolation:isolate!important;
 }
 #communityPage.chat-fullscreen .chat-shell{
  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
  max-width:none!important;min-height:0!important;margin:0!important;padding:0!important;
- overflow:hidden!important;background:#061322!important;border:0!important;border-radius:0!important;
+ overflow:hidden!important;background:transparent!important;border:0!important;border-radius:0!important;
  box-shadow:none!important;backdrop-filter:none!important;
 }
+#communityPage.chat-fullscreen .chat-shell::before{
+ content:"";position:absolute!important;inset:0!important;z-index:0!important;pointer-events:none!important;
+ background:linear-gradient(180deg,rgba(2,8,20,.42),rgba(2,8,20,.58))!important;
+}
+#communityPage.chat-fullscreen #chatConversationView{background:transparent!important}
+#communityPage.chat-fullscreen #communityMessages{background:transparent!important;position:relative!important;z-index:1!important}
 #communityPage.chat-fullscreen #chatListView{display:none!important}
 #communityPage.chat-fullscreen #chatConversationView:not(.hidden){
  position:absolute!important;inset:0!important;z-index:1!important;
