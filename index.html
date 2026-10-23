@@ -2275,7 +2275,30 @@ e.preventDefault();const fd=new FormData(form),id=form.dataset.scoreForm,ps=Numb
 const btn=form.querySelector('button[type=submit]');btn.disabled=true;btn.textContent='Submitting…';
 const {error}=await sb.from('match_reports').insert({match_id:id,player_id:currentUser.id,player_score:ps,opponent_score:os,evidence_url:null,notes:String(fd.get('notes')||'').trim()||null});
 if(error){message('tournamentNotice','Could not submit score: '+esc(error.message),true);btn.disabled=false;btn.textContent='Submit Match Result';return}
-message('tournamentNotice','Score submitted. Your opponent must submit their score too. If the reports disagree, an administrator will investigate before confirming the winner.');await loadMatches(mode)
+const {data:reports}=await sb.from('match_reports').select('id,player_id,player_score,opponent_score').eq('match_id',id).order('created_at',{ascending:true});
+const mine=reports?.find(r=>r.player_id===currentUser.id),other=(reports||[]).find(r=>r.player_id!==currentUser.id);
+if(mine){
+ const {data:match}=await sb.from('matches').select('id,player1_id,player2_id,status').eq('id',id).single();
+ const selfWon=mine.player_score>mine.opponent_score,draw=mine.player_score===mine.opponent_score;
+ if(other&&(other.player_score!==mine.opponent_score||other.opponent_score!==mine.player_score)){
+  await sb.from('matches').update({status:'disputed',winner_id:null,dispute_reason:'Players submitted different scores; admin review required.'}).eq('id',id);
+  await sb.from('match_reports').update({status:'disputed'}).eq('match_id',id);
+  message('tournamentNotice','Scores differ. The match is on hold for administrator review.',true);
+ }else if(!other){
+  const winner=draw?null:(selfWon?currentUser.id:(match.player1_id===currentUser.id?match.player2_id:match.player1_id));
+  const {error:matchError}=await sb.from('matches').update({player1_score:match.player1_id===currentUser.id?mine.player_score:mine.opponent_score,player2_score:match.player2_id===currentUser.id?mine.player_score:mine.opponent_score,winner_id:winner,status:draw?'awaiting_confirmation':'confirmed',completed_at:new Date().toISOString()}).eq('id',id);
+  if(matchError)message('tournamentNotice','Score saved, but official winner update failed: '+esc(matchError.message),true);
+  else message('tournamentNotice',draw?'Draw reported. This needs review before a winner can be announced.':(selfWon?'Your win has been recorded.':'Your report records you as the loser; your opponent is the winner.'));
+ }else{
+  const {data:match}=await sb.from('matches').select('player1_id,player2_id').eq('id',id).single();
+  const p1=match.player1_id===currentUser.id?mine.player_score:mine.opponent_score,p2=match.player2_id===currentUser.id?mine.player_score:mine.opponent_score;
+  const winner=p1===p2?null:(p1>p2?match.player1_id:match.player2_id);
+  await sb.from('matches').update({player1_score:p1,player2_score:p2,winner_id:winner,status:p1===p2?'awaiting_confirmation':'confirmed',completed_at:new Date().toISOString(),dispute_reason:null}).eq('id',id);
+  await sb.from('match_reports').update({status:'confirmed'}).eq('match_id',id);
+  message('tournamentNotice',p1===p2?'Both reports agree on a draw; administrator review is required.':'Both reports agree. The winner has been confirmed.');
+ }
+}
+await loadMatches(mode);await loadBracketOverview()
 }))
 }
 function playerInitial(name){return esc((String(name||'P').trim()[0]||'P').toUpperCase())}
