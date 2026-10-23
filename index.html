@@ -2787,4 +2787,45 @@ body:not(.chat-open) .wrap{min-height:100vh!important;padding-bottom:150px!impor
 #registerSplash{touch-action:pan-y}
 #chatConversationView:not(.hidden),#communityPage.chat-fullscreen{overscroll-behavior:contain}
 </style>
+
+<script id="ea-stable-scroll-repair-js">
+/* Keep footer content within the one content scroller. */
+(function(){
+  var main=document.querySelector('.wrap main');
+  var footer=document.querySelector('.wrap > footer');
+  if(main&&footer&&footer.parentElement!==main)main.appendChild(footer);
+})();
+</script>
+<style id="ea-stable-scroll-repair">
+/* Lock the document viewport; the main element below becomes the only scroller. */
+html{height:100%!important;min-height:0!important;overflow:hidden!important;overscroll-behavior:none!important}
+body{position:relative!important;height:100%!important;min-height:0!important;margin:0!important;overflow:hidden!important;overscroll-behavior:none!important;background:transparent!important;background-image:none!important}
+/* Static poster: large viewport unit avoids resizing with Chrome's collapsing address bar. */
+body::before{
+ content:""!important;position:fixed!important;inset:auto!important;top:0!important;left:0!important;width:100vw!important;height:100lvh!important;min-height:100lvh!important;z-index:-1!important;pointer-events:none!important;
+ transform:none!important;filter:none!important;animation:none!important;transition:none!important;will-change:auto!important;
+ background-image:linear-gradient(180deg,rgba(5,11,20,.36) 0%,rgba(5,11,20,.48) 55%,rgba(5,11,20,.72) 100%),url("https://raw.githubusercontent.com/jeraqueen/efootball-arena-kenya/main/poster.jpg1")!important;
+ background-position:center center!important;background-size:cover!important;background-repeat:no-repeat!important;background-attachment:scroll!important
+}
+body::after{content:none!important;display:none!important}
+header.nav.app-topbar{
+ position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:1000!important;width:100%!important;height:64px!important;min-height:64px!important;margin:0!important;box-sizing:border-box!important;
+ transform:none!important;filter:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important
+}
+.main-nav.bottom-nav{
+ position:fixed!important;left:50%!important;bottom:max(10px,env(safe-area-inset-bottom))!important;top:auto!important;z-index:1001!important;transform:translateX(-50%)!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important
+}
+/* Remove scrolling/viewport sizing from ancestors; keep main as the sole scroller. */
+.wrap{position:static!important;width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding:0!important;margin:0!important;transform:none!important;filter:none!important;perspective:none!important}
+main{
+ position:fixed!important;top:64px!important;right:0!important;bottom:calc(94px + env(safe-area-inset-bottom))!important;left:0!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0 0 12px!important;box-sizing:border-box!important;
+ overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior-y:contain!important;touch-action:pan-y!important;
+ transform:none!important;filter:none!important;perspective:none!important;contain:none!important
+}
+body:not(.chat-open) main,body:not(.chat-open) .page-view,body:not(.chat-open) .section{height:auto!important;max-height:none!important;overflow:visible!important}
+#homePage{margin-top:0!important}
+body:not(.chat-open) .wrap{min-height:0!important;padding-bottom:0!important}
+footer{padding:18px 16px 12px!important}
+</style>
 </body></html>
