@@ -2738,4 +2738,61 @@ header.nav.app-topbar{
 .wrap{padding-top:84px!important}
 @media(max-width:760px){.wrap{padding-top:78px!important}}
 </style>
+<style id="ea-scroll-stability-v2">
+/* Mobile scroll stability: keep the existing poster fixed without animated effects. */
+html,body{
+  overscroll-behavior-y:none!important;
+  overflow-x:hidden!important;
+}
+body{
+  isolation:auto!important;
+  position:static!important;
+}
+body::before{
+  position:fixed!important;
+  top:0!important;left:0!important;right:0!important;bottom:auto!important;
+  width:100%!important;
+  height:100vh!important;
+  height:100lvh!important;
+  min-height:100vh!important;
+  min-height:100lvh!important;
+  transform:none!important;
+  filter:none!important;
+  animation:none!important;
+  transition:none!important;
+  contain:paint!important;
+  backface-visibility:hidden!important;
+  will-change:auto!important;
+  background-attachment:scroll!important;
+  background-position:center center!important;
+  background-size:cover!important;
+  background-repeat:no-repeat!important;
+}
+body::after,body.chat-open::after{
+  content:none!important;
+  display:none!important;
+}
+body .panel,body .widget,body .tournament,body .stat,body .section,
+body .feature-card,#eaHome *,#homePage button,.payment-panel{
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+body .panel,body .widget,body .tournament,body .stat{
+  background:rgba(6,16,30,.72)!important;
+}
+header.nav.app-topbar{
+  position:fixed!important;
+  top:0!important;
+  transform:none!important;
+  padding-top:env(safe-area-inset-top,0px)!important;
+  height:calc(64px + env(safe-area-inset-top,0px))!important;
+  min-height:calc(64px + env(safe-area-inset-top,0px))!important;
+  box-sizing:border-box!important;
+}
+#homePage{margin-top:12px!important}
+.wrap{padding-top:calc(84px + env(safe-area-inset-top,0px))!important}
+@media(max-width:760px){
+  .wrap{padding-top:calc(78px + env(safe-area-inset-top,0px))!important}
+}
+</style>
 </body></html>
