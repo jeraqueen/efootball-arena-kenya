@@ -2950,21 +2950,21 @@ footer{padding:18px 16px 12px!important}
 
 <div id="opponentDM" aria-hidden="true">
  <section class="dm-window" role="dialog" aria-modal="true" aria-labelledby="opponentDMTitle">
-  <div class="dm-head"><div class="group-avatar">✉</div><div class="dm-head-copy"><strong id="opponentDMTitle">Message opponent</strong><small>Private match conversation · Share your room code here</small></div><button type="button" class="dm-close" id="closeOpponentDM">✕</button></div>
+  <div class="dm-head"><button type="button" class="dm-back" id="closeOpponentDM" aria-label="Back to fixtures">‹</button><div class="group-avatar" id="opponentDMAvatar">✉</div><div class="dm-head-copy"><strong id="opponentDMTitle">Message opponent</strong><small>Private conversation · Friend Match room code</small></div><span class="dm-private-tag">PRIVATE</span></div>
   <div id="opponentDMMessages"><div class="empty">Open a fixture and message your opponent here.</div></div>
-  <form id="opponentDMForm" class="dm-compose"><textarea id="opponentDMInput" maxlength="2000" rows="2" placeholder="Type your message or Friend Match room code…" required></textarea><button type="submit" id="opponentDMSend">Send ➤</button></form>
-  <div id="opponentDMNotice" class="small muted" style="padding:0 12px 10px"></div>
+  <div id="opponentDMNotice" class="small muted dm-notice"></div>
+  <div id="opponentDMRecordingBar" class="dm-recording hidden"><span>● Recording voice message…</span><button type="button" id="opponentDMCancelRecord">Cancel</button><button type="button" id="opponentDMStopRecord">Stop &amp; Send</button></div>
+  <form id="opponentDMForm" class="dm-compose"><button type="button" class="dm-voice" id="opponentDMRecord" aria-label="Record voice message" title="Record voice message">🎙</button><textarea id="opponentDMInput" maxlength="2000" rows="1" placeholder="Message or Friend Match room code…" required></textarea><button type="submit" id="opponentDMSend" aria-label="Send message">➤</button></form>
  </section>
 </div>
 <script>
-let dmRecipientId=null,dmRecipientName='Opponent',dmRefreshHandle=null,dmLoading=false;
-function closeOpponentDM(){const m=document.getElementById('opponentDM');m.classList.remove('visible');m.setAttribute('aria-hidden','true');if(dmRefreshHandle){clearInterval(dmRefreshHandle);dmRefreshHandle=null}}
+let dmRecipientId=null,dmRecipientName='Opponent',dmRefreshHandle=null,dmLoading=false,dmVoiceRecorder=null,dmVoiceStream=null,dmVoiceChunks=[],dmCancelVoice=false;
+function closeOpponentDM(){const m=document.getElementById('opponentDM');m.classList.remove('visible');m.setAttribute('aria-hidden','true');document.body.classList.remove('dm-fullscreen-open');if(dmRefreshHandle){clearInterval(dmRefreshHandle);dmRefreshHandle=null}if(dmVoiceRecorder&&dmVoiceRecorder.state==='recording'){dmCancelVoice=true;dmVoiceRecorder.stop()}dmRecipientId=null}
 async function openOpponentDM(id,name){
- if(!window.currentUser && typeof currentUser==='undefined'){alert('Please sign in first.');return}
  if(!currentUser){alert('Please sign in first.');return}
  if(!id||id===currentUser.id){alert('This opponent is not available for private messaging.');return}
  dmRecipientId=id;dmRecipientName=name||'Opponent';
- const modal=document.getElementById('opponentDM');modal.classList.add('visible');modal.setAttribute('aria-hidden','false');
+ const modal=document.getElementById('opponentDM');modal.classList.add('visible');modal.setAttribute('aria-hidden','false');document.body.classList.add('dm-fullscreen-open');
  document.getElementById('opponentDMTitle').textContent='@'+dmRecipientName.replace(/^@/,'');
  document.getElementById('opponentDMMessages').innerHTML='<div class="empty">Loading private conversation…</div>';
  document.getElementById('opponentDMNotice').textContent='';
@@ -2975,20 +2975,32 @@ async function openOpponentDM(id,name){
 }
 async function loadOpponentDMMessages(){
  if(!currentUser||!dmRecipientId||dmLoading)return;dmLoading=true;
- const box=document.getElementById('opponentDMMessages'),wasNear=box.scrollHeight-box.scrollTop-box.clientHeight<100;
- const {data,error}=await sb.from('direct_messages').select('id,sender_id,recipient_id,body,created_at,read_at').or('and(sender_id.eq.'+currentUser.id+',recipient_id.eq.'+dmRecipientId+'),and(sender_id.eq.'+dmRecipientId+',recipient_id.eq.'+currentUser.id+')').order('created_at',{ascending:true}).limit(200);
- if(error){box.innerHTML='<div class="notice error">Private chat could not load: '+esc(error.message)+'. Please refresh the page and try again.</div>';document.getElementById('opponentDMNotice').textContent='If this continues, the private-message table or permissions may not be ready.';dmLoading=false;return}
+ const box=document.getElementById('opponentDMMessages'),wasNear=box.scrollHeight-box.scrollTop-box.clientHeight<120;
+ const {data,error}=await sb.from('direct_messages').select('id,sender_id,recipient_id,body,audio_path,created_at,read_at,edited_at,deleted_at').or('and(sender_id.eq.'+currentUser.id+',recipient_id.eq.'+dmRecipientId+'),and(sender_id.eq.'+dmRecipientId+',recipient_id.eq.'+currentUser.id+')').order('created_at',{ascending:true}).limit(200);
+ if(error){box.innerHTML='<div class="notice error">Private chat could not load: '+esc(error.message)+'. Please refresh and try again.</div>';document.getElementById('opponentDMNotice').textContent='Please try again. If this continues, contact tournament support.';dmLoading=false;return}
  const rows=data||[];
- box.className='';box.innerHTML=rows.length?rows.map(m=>'<div class="dm-bubble '+(m.sender_id===currentUser.id?'own':'')+'">'+esc(m.body)+'<small>'+(m.sender_id===currentUser.id?'You':'Opponent')+' · '+esc(new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}))+'</small></div>').join(''):'<div class="empty">No messages yet. Send the first message and agree on the Friend Match room code.</div>';
+ box.className='';box.innerHTML=rows.length?rows.map(m=>{
+  const own=m.sender_id===currentUser.id, deleted=!!m.deleted_at;
+  let body=deleted?'<em class="dm-deleted">This message was deleted</em>':m.audio_path?'<audio class="dm-audio" controls preload="none" src="'+esc(sb.storage.from('community-voice').getPublicUrl(m.audio_path).data.publicUrl)+'"></audio>':'<div class="dm-message-text">'+esc(m.body)+'</div>';
+  const menu=own&&!deleted?'<div class="dm-message-tools"><button type="button" class="dm-more" data-dm-menu="'+esc(m.id)+'" aria-label="Message options">⋮</button><div class="dm-menu hidden" data-dm-menu-for="'+esc(m.id)+'">'+(!m.audio_path?'<button type="button" data-dm-edit="'+esc(m.id)+'">Edit message</button>':'')+'<button type="button" data-dm-delete="'+esc(m.id)+'">Delete message</button></div></div>':'';
+  return '<article class="dm-bubble '+(own?'own':'')+'" data-dm-message="'+esc(m.id)+'"><div class="dm-bubble-body">'+body+'<small>'+(own?'You':esc(dmRecipientName))+(m.edited_at&&!deleted?' · edited':'')+' · '+esc(new Date(m.created_at).toLocaleTimeString('en-KE',{timeZone:'Africa/Nairobi',hour:'2-digit',minute:'2-digit'}))+(own?' · ✓✓':'')+'</small>'+menu+'</div></article>';
+ }).join(''):'<div class="empty">No messages yet. Say hello and agree on the Friend Match room code.</div>';
  const unread=rows.filter(m=>m.recipient_id===currentUser.id&&!m.read_at).map(m=>m.id);
- if(unread.length){await sb.from('direct_messages').update({read_at:new Date().toISOString()}).in('id',unread)}
+ if(unread.length)await sb.from('direct_messages').update({read_at:new Date().toISOString()}).in('id',unread);
  if(wasNear||!rows.length)box.scrollTop=box.scrollHeight;
  dmLoading=false;
 }
-document.addEventListener('click',e=>{
+document.addEventListener('click',async e=>{
  const b=e.target.closest('[data-opponent-message]');
  if(b){e.preventDefault();openOpponentDM(b.dataset.opponentMessage,b.dataset.opponentName);return}
- if(e.target.id==='closeOpponentDM'||e.target.id==='opponentDM')closeOpponentDM();
+ if(e.target.id==='closeOpponentDM'||e.target.id==='opponentDM'){closeOpponentDM();return}
+ const more=e.target.closest('[data-dm-menu]');
+ if(more){const id=more.dataset.dmMenu,menu=document.querySelector('[data-dm-menu-for="'+id+'"]');document.querySelectorAll('.dm-menu').forEach(x=>{if(x!==menu)x.classList.add('hidden')});menu?.classList.toggle('hidden');return}
+ const edit=e.target.closest('[data-dm-edit]');
+ if(edit){const id=edit.dataset.dmEdit,row=(await sb.from('direct_messages').select('body').eq('id',id).eq('sender_id',currentUser.id).maybeSingle()).data;if(!row)return;document.querySelectorAll('.dm-menu').forEach(x=>x.classList.add('hidden'));const next=prompt('Edit your message:',row.body||'');if(next===null)return;const body=next.trim();if(!body||body.length>2000){alert('Message must contain 1–2,000 characters.');return}const {error}=await sb.from('direct_messages').update({body,edited_at:new Date().toISOString()}).eq('id',id).eq('sender_id',currentUser.id);if(error)alert('Could not edit message: '+error.message);else await loadOpponentDMMessages();return}
+ const del=e.target.closest('[data-dm-delete]');
+ if(del){const id=del.dataset.dmDelete;document.querySelectorAll('.dm-menu').forEach(x=>x.classList.add('hidden'));if(!confirm('Delete this message for both players?'))return;const {error}=await sb.from('direct_messages').update({deleted_at:new Date().toISOString(),body:'This message was deleted',audio_path:null}).eq('id',id).eq('sender_id',currentUser.id);if(error)alert('Could not delete message: '+error.message);else await loadOpponentDMMessages();return}
+ if(!e.target.closest('.dm-message-tools'))document.querySelectorAll('.dm-menu').forEach(x=>x.classList.add('hidden'));
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeOpponentDM()});
 document.getElementById('opponentDMForm').addEventListener('submit',async e=>{
@@ -2999,7 +3011,61 @@ document.getElementById('opponentDMForm').addEventListener('submit',async e=>{
  const {error}=await sb.from('direct_messages').insert({sender_id:currentUser.id,recipient_id:dmRecipientId,body});
  btn.disabled=false;
  if(error){document.getElementById('opponentDMNotice').textContent='Message not sent: '+error.message;return}
- input.value='';document.getElementById('opponentDMNotice').textContent='Message sent privately.';await loadOpponentDMMessages();
+ input.value='';document.getElementById('opponentDMNotice').textContent='';await loadOpponentDMMessages();
 });
+async function dmStartVoice(){
+ if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){document.getElementById('opponentDMNotice').textContent='Voice recording is not supported by this browser.';return}
+ try{
+  dmVoiceStream=await navigator.mediaDevices.getUserMedia({audio:true});dmVoiceChunks=[];dmCancelVoice=false;
+  const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(t=>MediaRecorder.isTypeSupported(t));
+  dmVoiceRecorder=new MediaRecorder(dmVoiceStream,mime?{mimeType:mime}:undefined);
+  dmVoiceRecorder.ondataavailable=e=>{if(e.data.size)dmVoiceChunks.push(e.data)};
+  dmVoiceRecorder.onstop=async()=>{
+   dmVoiceStream?.getTracks().forEach(t=>t.stop());dmVoiceStream=null;
+   const blob=new Blob(dmVoiceChunks,{type:dmVoiceRecorder.mimeType||'audio/webm'});
+   document.getElementById('opponentDMRecordingBar').classList.add('hidden');
+   document.getElementById('opponentDMRecord').classList.remove('hidden');
+   if(dmCancelVoice||!blob.size)return;
+   const notice=document.getElementById('opponentDMNotice');notice.textContent='Sending voice message…';
+   try{
+    if(blob.size>10*1024*1024)throw new Error('Please record a shorter voice message (under 10 MB).');
+    const ext=blob.type.includes('mp4')?'mp4':blob.type.includes('ogg')?'ogg':'webm',path=currentUser.id+'/private-'+Date.now()+'.'+ext;
+    const up=await sb.storage.from('community-voice').upload(path,blob,{contentType:blob.type});
+    if(up.error)throw up.error;
+    const ins=await sb.from('direct_messages').insert({sender_id:currentUser.id,recipient_id:dmRecipientId,body:'🎤 Voice message',audio_path:path});
+    if(ins.error)throw ins.error;
+    notice.textContent='';await loadOpponentDMMessages();
+   }catch(err){notice.textContent='Voice message failed: '+(err.message||'Please try again.')}
+  };
+  dmVoiceRecorder.start();document.getElementById('opponentDMRecord').classList.add('hidden');document.getElementById('opponentDMRecordingBar').classList.remove('hidden');document.getElementById('opponentDMNotice').textContent=''; 
+ }catch(err){document.getElementById('opponentDMNotice').textContent='Allow microphone access to record a voice message.'}
+}
+document.getElementById('opponentDMRecord').addEventListener('click',dmStartVoice);
+document.getElementById('opponentDMStopRecord').addEventListener('click',()=>{if(dmVoiceRecorder?.state==='recording')dmVoiceRecorder.stop()});
+document.getElementById('opponentDMCancelRecord').addEventListener('click',()=>{if(dmVoiceRecorder?.state==='recording'){dmCancelVoice=true;dmVoiceRecorder.stop()}});
 </script>
+
+<style id="arena-private-chat-fullpage">
+#opponentDM{position:fixed;inset:0;z-index:12000;background:#030817;display:none;align-items:stretch;justify-content:stretch;padding:0}
+#opponentDM.visible{display:flex}
+#opponentDM .dm-window{width:100%;height:100%;max-height:100dvh;border:0;border-radius:0;display:flex;flex-direction:column;background:linear-gradient(180deg,#06142a,#020814);overflow:hidden;box-shadow:none}
+.dm-head{flex:0 0 auto;padding:13px max(14px,env(safe-area-inset-left));padding-top:max(13px,env(safe-area-inset-top));gap:11px;background:#081a33;border-bottom:1px solid #174578}
+.dm-back{border:0!important;background:#102b4d!important;color:#fff!important;border-radius:50%;font-size:28px;line-height:1;width:42px;height:42px;padding:0!important}
+#opponentDMAvatar{flex:0 0 42px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#ffd21f,#ff9c00);color:#06132b;font-weight:900}
+.dm-head-copy{flex:1;min-width:0}.dm-head-copy strong{display:block;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dm-head-copy small{display:block;color:#9bb0c8;font-size:11px}
+.dm-private-tag{font-size:9px;font-weight:900;letter-spacing:.08em;color:#9ef4d7;border:1px solid #168b7780;border-radius:20px;padding:5px 7px}
+#opponentDMMessages{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:15px 12px;background:radial-gradient(ellipse at top,#0a2040,#030817 72%);overscroll-behavior:contain}
+.dm-bubble{display:flex;max-width:min(88%,520px);padding:10px 12px;border-radius:16px 16px 16px 5px;background:#112744;border:1px solid #214365;align-self:flex-start;overflow-wrap:anywhere;white-space:pre-wrap;color:#f5f8ff}
+.dm-bubble.own{align-self:flex-end;background:#075e4c;border-color:#14886e;border-radius:16px 16px 5px 16px}
+.dm-bubble-body{min-width:0;width:100%}.dm-bubble small{display:block;margin-top:6px;font-size:10px;opacity:.72}.dm-message-text{white-space:pre-wrap;overflow-wrap:anywhere}.dm-audio{display:block;width:min(260px,65vw);height:38px;max-width:100%}.dm-deleted{opacity:.7;font-style:italic}
+.dm-message-tools{position:relative;display:flex;justify-content:flex-end;margin-top:3px}.dm-more{background:transparent!important;color:#dceaff!important;border:0!important;padding:1px 7px!important;font-size:20px}.dm-menu{position:absolute;right:0;bottom:28px;z-index:3;min-width:150px;background:#102744;border:1px solid #28547f;border-radius:10px;box-shadow:0 8px 24px #0009;padding:5px;display:grid;gap:3px}.dm-menu button{background:transparent!important;color:#f4f8ff!important;text-align:left;padding:9px!important;border:0!important}.dm-menu button[data-dm-delete]{color:#ff9aa7!important}
+.dm-notice{flex:0 0 auto;padding:0 12px 5px;color:#9bb0c8}
+.dm-compose{display:flex;align-items:flex-end;gap:8px;padding:10px 10px max(10px,env(safe-area-inset-bottom));border-top:1px solid #174578;background:#06142a}
+.dm-compose textarea{flex:1;min-width:0;max-height:120px;resize:none;border-radius:22px;border:1px solid #28547f;background:#0a1d36;color:#eef5ff;padding:12px 14px;font:inherit;line-height:1.35}
+#opponentDMSend{flex:0 0 44px;width:44px;height:44px;border-radius:50%;padding:0!important;background:linear-gradient(120deg,#ffd21f,#ffae00)!important;color:#06132b!important;font-size:22px;font-weight:1000}
+.dm-voice{flex:0 0 44px;width:44px;height:44px;border-radius:50%;padding:0!important;background:#7044d8!important;color:white!important;font-size:19px}
+.dm-recording{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:#351526;color:#ffb5c0}.dm-recording span{font-size:12px;flex:1}.dm-recording button{padding:8px 10px!important;border-radius:9px;font-size:12px}
+body.dm-fullscreen-open{overflow:hidden!important}
+@media(min-width:760px){#opponentDMMessages{padding:22px max(calc((100vw - 820px)/2),24px)}.dm-compose{padding-left:max(calc((100vw - 820px)/2),24px);padding-right:max(calc((100vw - 820px)/2),24px)}}
+</style>
 </body></html>
