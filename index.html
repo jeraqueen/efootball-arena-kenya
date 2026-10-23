@@ -206,6 +206,14 @@ body.chat-open::before,body.chat-open::after{background-attachment:fixed!importa
 .dm-bubble.own{align-self:flex-end;background:#075e4c;border-color:#14886e}.dm-bubble small{display:block;margin-top:5px;font-size:10px;opacity:.72}
 .dm-compose{display:flex;gap:8px;padding:12px;border-top:1px solid #28415c;background:#0d1c2e}.dm-compose textarea{flex:1;min-width:0;resize:none;max-height:110px;border-radius:12px;border:1px solid #28415c;background:#071421;color:#eef5ff;padding:11px;font:inherit}.dm-compose button{align-self:flex-end}
 .dm-opponent-btn{display:block;width:100%;margin:12px 0;background:linear-gradient(100deg,#3de0a1,#66b8ff);color:#061525;font-weight:900}
+/* Consistent compact chat-list rows: official rooms and private chats share one visual system. */
+#directChatsList .direct-chat-row{min-height:76px;padding:12px 14px;border-radius:16px;background:rgba(8,20,36,.82)!important;border:1px solid rgba(110,145,180,.28)!important;box-shadow:0 5px 16px rgba(0,0,0,.12)}
+#directChatsList .direct-chat-row:active,#directChatsList .direct-chat-row:focus-visible{background:rgba(8,20,36,.92)!important;outline:2px solid rgba(42,220,164,.65);outline-offset:1px}
+#directChatsList .chat-avatar-wrap{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;max-width:48px!important;max-height:48px!important;border-radius:50%!important;overflow:hidden!important;flex:0 0 48px!important}
+#directChatsList .chat-avatar-wrap img,#directChatsList .chat-avatar-wrap .avatar,#directChatsList .chat-avatar-wrap .group-avatar{display:flex;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;max-width:48px!important;max-height:48px!important;object-fit:cover!important;border-radius:50%!important;align-items:center;justify-content:center}
+#directChatsList .chat-list-copy{min-width:0;overflow:hidden}
+#directChatsList .chat-row-top strong{font-size:15px;font-weight:800}
+#directChatsList .chat-preview-text{font-size:13px;line-height:1.35}
 .direct-chat-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}.direct-chat-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:rgba(8,20,36,.8);border:1px solid #263b53;border-radius:14px;padding:12px;color:#eef5ff;cursor:pointer}.direct-chat-row .chat-list-copy{min-width:0;flex:1}.direct-chat-row .chat-preview-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.8}.direct-chat-row .chat-row-top{display:flex;justify-content:space-between;gap:8px}.direct-chat-empty{padding:10px 12px;color:#aabbd0;font-size:13px}
 
 .results-toggle{background:linear-gradient(100deg,#f7c65a,#ff9b48)!important;color:#1a1304!important;border:0!important;font-weight:900!important;letter-spacing:.2px}
