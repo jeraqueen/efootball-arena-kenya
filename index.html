@@ -2043,10 +2043,20 @@ if(!['locked','live','completed'].includes(t.status)){
  const closesAt=t.registration_closes_at?new Date(t.registration_closes_at).getTime():0;
  if(closesAt&&Date.now()<closesAt){box.className='empty';box.textContent='Registration closes '+new Date(closesAt).toLocaleString('en-KE',{timeZone:'Africa/Nairobi',weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit',hour12:true})+' Kenya time. The administrator can generate the bracket after that deadline.';return}
  box.className='empty';
- if(currentUser?.app_metadata?.role==='admin'){
-  box.innerHTML='Registration deadline has passed, but the tournament is still marked open. <button type="button" id="generateBracketFromOverview">Generate knockout bracket now</button>';
-  $('generateBracketFromOverview').addEventListener('click',async e=>{const btn=e.currentTarget;btn.disabled=true;btn.textContent='Generating…';const {data,error}=await sb.rpc('generate_knockout_bracket',{p_tournament_id:t.id});if(error){box.textContent='Could not generate bracket: '+error.message;return}box.textContent='Bracket generated with '+data+' match and bye records. Refreshing…';await loadTournaments();await loadMatches();await loadBracketOverview();});
- }else{box.textContent='Registration deadline has passed, but the tournament is still marked open. An administrator must generate the bracket.'}
+ box.textContent='Registration is closed. Preparing the bracket automatically from confirmed entries…';
+ const {data:generated,error:generateError}=await sb.rpc('generate_knockout_bracket',{p_tournament_id:t.id});
+ if(generateError){
+  const msg=String(generateError.message||'');
+  box.textContent=/At least two approved players are required/i.test(msg)
+   ?'Registration is closed. The bracket will appear automatically once at least two payments are confirmed.'
+   :/already exists/i.test(msg)
+    ?'Bracket already exists. Loading fixtures…'
+    :'Could not prepare the bracket automatically: '+msg;
+  if(/already exists/i.test(msg)){await loadMatches();await loadBracketOverview()}
+  return
+ }
+ box.textContent='Bracket ready ('+generated+' match and bye records). Loading fixtures…';
+ await loadTournaments();await loadMatches();await loadBracketOverview();
  return
 }
 const {data:matches,error}=await sb.from('matches').select('id,round_number,match_number,player1_id,player2_id,player1_score,player2_score,winner_id,status').eq('tournament_id',t.id).order('round_number',{ascending:true}).order('match_number',{ascending:true});
