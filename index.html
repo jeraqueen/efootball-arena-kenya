@@ -2061,7 +2061,7 @@ if(!['locked','live','completed'].includes(t.status)){
  if(generateError){
   const msg=String(generateError.message||'');
   box.textContent=/At least two approved players are required/i.test(msg)
-   ?'Registration is closed. The bracket will appear automatically once at least two payments are confirmed.'
+   ?(box.className='',box.innerHTML='<div class="notice"><strong>PRIVATE BRACKET PREVIEW</strong><p class="small">Testing preview only. Placeholder players are not real entrants and no fixtures or results have been created.</p></div>'+[['Round of 64',32],['Round of 32',16],['Round of 16',8],['Quarter-finals',4],['Semi-finals',2],['Final',1]].map(([label,count])=>'<div class="section"><h3>'+label+' <span class="pill blue">'+count+' matches</span></h3><div class="grid">'+Array.from({length:count},(_,i)=>'<article class="tournament"><span class="pill">Preview · Match '+(i+1)+'</span><div class="small muted">Entry '+(i*2+1)+' <strong>Player '+(i*2+1)+'</strong></div><div class="small muted">Entry '+(i*2+2)+' <strong>Player '+(i*2+2)+'</strong></div><p class="small">— : —</p></article>').join('')+'</div></div>').join('')+'<div class="section"><h3>Third-place playoff <span class="pill gold">Preview</span></h3><article class="tournament"><strong>Semi-final loser 1</strong><p class="small">— : —</p><strong>Semi-final loser 2</strong></article></div>')
    :/already exists/i.test(msg)
     ?'Bracket already exists. Loading fixtures…'
     :'Could not prepare the bracket automatically: '+msg;
