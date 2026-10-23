@@ -2256,67 +2256,79 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
 
 <script id="arena-ui-sound-effects">
 (function(){
-  var ctx=null, master=null, ambience=null, started=false, lastClick=0;
-  function audioContext(){
-    if(!ctx){
-      var AC=window.AudioContext||window.webkitAudioContext;
-      if(!AC)return null;
-      ctx=new AC();
-      master=ctx.createGain(); master.gain.value=0.18; master.connect(ctx.destination);
-    }
-    if(ctx.state==='suspended')ctx.resume().catch(function(){});
+  var ctx=null, master=null, ambienceGain=null, ambienceStarted=false, lastClick=0, motionTimer=null;
+  function setup(){
+    if(ctx)return ctx;
+    var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+    ctx=new AC();
+    master=ctx.createGain();master.gain.value=.82;master.connect(ctx.destination);
     return ctx;
   }
-  function tone(freq, duration, volume, type, endFreq){
-    var c=audioContext(); if(!c||!master)return;
-    var o=c.createOscillator(), g=c.createGain(), now=c.currentTime;
-    o.type=type||'sine'; o.frequency.setValueAtTime(freq,now);
-    if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(1,endFreq),now+duration);
-    g.gain.setValueAtTime(0.0001,now);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume),now+0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001,now+duration);
-    o.connect(g);g.connect(master);o.start(now);o.stop(now+duration+0.025);
+  function resume(){
+    var c=setup();if(c&&c.state==='suspended')c.resume().catch(function(){});return c;
+  }
+  function sweep(from,to,dur,vol,wave){
+    var c=resume();if(!c||!master)return;
+    var now=c.currentTime,o=c.createOscillator(),g=c.createGain();
+    o.type=wave||'sawtooth';o.frequency.setValueAtTime(Math.max(1,from),now);
+    o.frequency.exponentialRampToValueAtTime(Math.max(1,to),now+dur);
+    g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),now+.018);
+    g.gain.exponentialRampToValueAtTime(.0001,now+dur);
+    var f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=wave==='sine'?2600:1700;
+    o.connect(f);f.connect(g);g.connect(master);o.start(now);o.stop(now+dur+.03);
+  }
+  function blip(freq,dur,vol,wave){
+    var c=resume();if(!c||!master)return;
+    var now=c.currentTime,o=c.createOscillator(),g=c.createGain();
+    o.type=wave||'triangle';o.frequency.setValueAtTime(freq,now);
+    g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),now+.008);
+    g.gain.exponentialRampToValueAtTime(.0001,now+dur);
+    o.connect(g);g.connect(master);o.start(now);o.stop(now+dur+.02);
   }
   function startAmbience(){
-    var c=audioContext(); if(!c||started)return; started=true;
-    // Soft, low stadium-like atmosphere without loud repeating crowd samples.
-    var buffer=c.createBuffer(1,c.sampleRate*2,c.sampleRate), data=buffer.getChannelData(0);
-    for(var i=0;i<data.length;i++)data[i]=(Math.random()*2-1);
-    var noise=c.createBufferSource();noise.buffer=buffer;noise.loop=true;
-    var filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.value=190;filter.Q.value=.35;
-    ambience=c.createGain();ambience.gain.value=.0001;
-    noise.connect(filter);filter.connect(ambience);ambience.connect(master);noise.start();
-    var now=c.currentTime;
-    ambience.gain.setValueAtTime(.0001,now);
-    ambience.gain.linearRampToValueAtTime(.022,now+2.5);
-    // Gentle distant crowd-like swells, kept deliberately quiet.
-    var lfo=c.createOscillator(), lfoGain=c.createGain();
-    lfo.frequency.value=.075;lfoGain.gain.value=.008;
-    lfo.connect(lfoGain);lfoGain.connect(ambience.gain);lfo.start();
+    var c=resume();if(!c||ambienceStarted)return;ambienceStarted=true;
+    // Quiet, layered stadium-electronic bed with repeating synth pulses.
+    var bed=c.createGain();bed.gain.value=.0001;bed.connect(master);ambienceGain=bed;
+    var osc=c.createOscillator(), og=c.createGain(), filter=c.createBiquadFilter();
+    osc.type='sawtooth';osc.frequency.value=55;filter.type='lowpass';filter.frequency.value=145;
+    og.gain.value=.10;osc.connect(filter);filter.connect(og);og.connect(bed);osc.start();
+    var lfo=c.createOscillator(),lg=c.createGain();lfo.type='sine';lfo.frequency.value=.12;lg.gain.value=.018;
+    lfo.connect(lg);lg.connect(bed.gain);lfo.start();
+    var now=c.currentTime;bed.gain.setValueAtTime(.0001,now);bed.gain.linearRampToValueAtTime(.13,now+1.2);
+    function loop(){
+      if(!ctx||ctx.state!=='running')return;
+      // Short rising/falling "choo-choo" selection sounds, like a game menu.
+      sweep(240,760,.13,.19,'triangle');
+      setTimeout(function(){sweep(610,310,.16,.16,'triangle');},150);
+      setTimeout(function(){blip(980,.055,.09,'sine');},350);
+      motionTimer=setTimeout(loop,2600);
+    }
+    loop();
   }
-  function clickSound(){
-    var now=Date.now();if(now-lastClick<65)return;lastClick=now;
+  function clickSound(target){
+    var now=Date.now();if(now-lastClick<90)return;lastClick=now;
     startAmbience();
-    tone(880,.045,.045,'sine',620);
-    tone(1320,.025,.012,'triangle',990);
+    // Stronger two-part menu confirmation chirp.
+    sweep(520,1120,.085,.30,'triangle');
+    setTimeout(function(){sweep(920,430,.11,.23,'triangle');},75);
+    if(target&&target.matches('button,.widget,.tournament,.feature-card,[role="button"]')){
+      setTimeout(function(){blip(1180,.035,.11,'sine');},150);
+    }
   }
   function attach(){
     document.addEventListener('pointerdown',function(e){
       var target=e.target&&e.target.closest&&e.target.closest('button,a,[role="button"],.widget,.tournament,.feature-card,.stat,.pill,[data-scroll]');
       if(!target||target.disabled||target.getAttribute('aria-disabled')==='true')return;
       if(target.matches('input,select,textarea,[contenteditable="true"]'))return;
-      clickSound();
+      clickSound(target);
     },{capture:true,passive:true});
-    // Browsers require a real user gesture before continuous audio can start.
-    document.addEventListener('keydown',function(e){
-      if(e.key==='Enter'||e.key===' '){startAmbience();}
-    },{passive:true});
-    window.addEventListener('pagehide',function(){
-      if(ctx&&ctx.state==='running')ctx.suspend().catch(function(){});
+    // Any first intentional interaction unlocks audio on mobile browsers.
+    ['touchstart','keydown'].forEach(function(evt){
+      document.addEventListener(evt,function(){resume();startAmbience();},{once:true,passive:true});
     });
     document.addEventListener('visibilitychange',function(){
       if(document.hidden&&ctx&&ctx.state==='running')ctx.suspend().catch(function(){});
-      else if(!document.hidden&&started&&ctx&&ctx.state==='suspended')ctx.resume().catch(function(){});
+      else if(!document.hidden&&ctx&&ctx.state==='suspended')ctx.resume().catch(function(){});
     });
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',attach,{once:true});else attach();
