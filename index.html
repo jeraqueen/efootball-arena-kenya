@@ -2727,7 +2727,7 @@ function sig(){return who()+'|'+photo().length+'|'+stat(/my entries/i)+'|'+stat(
 function render(){var box=document.getElementById('eaHome');if(!box)return;box.innerHTML=html();box.dataset.sig=sig();tick()}
 function wire(box){box.addEventListener('click',function(e){var b=e.target.closest('[data-act]');if(!b)return;if(b.dataset.act==='join'){var t=navTab(/tournaments/i);if(t)t.click();else toast('Open Tournaments from the navigation menu.')}else if(b.dataset.act==='invite'){window.open('https://wa.me/?text='+encodeURIComponent('Join me on eFootball Arena 254 Kenya for daily eFootball tournaments! '+location.origin),'_blank','noopener')}else if(b.dataset.act==='checkin'){var s=state(),today=ymd(0);if(s.last===today)return;s.streak=s.last===ymd(-1)?s.streak+1:1;s.last=today;var gain=10+(s.streak%7===0?30:0),up=addXP(s,gain);save(s);toast('Day '+s.streak+' streak +'+gain+' XP'+up);render()}})}
 function run(){var signed=document.getElementById('signedHomePanel'),guest=document.getElementById('guestHomePanel');if(!signed||signed.classList.contains('hidden'))return;var h1=signed.querySelector('h1');if(!h1)return;var box=document.getElementById('eaHome');if(!box){box=document.createElement('div');box.id='eaHome';signed.appendChild(box);wire(box);render()}else if(box.dataset.sig!==sig())render();[].forEach.call(signed.children,function(c){if(c!==h1&&c!==box&&!c.classList.contains('eyebrow'))c.classList.add('ea-hide')});if(guest)guest.classList.remove('ea-hide')}
-var timer;var obs=new MutationObserver(function(ms){var box=document.getElementById('eaHome');if(box&&ms.every(function(m){var n=m.target.nodeType===1?m.target:m.target.parentElement;return n&&box.contains(n)}))return;clearTimeout(timer);timer=setTimeout(run,200)});obs.observe(document.body,{childList:true,subtree:true,characterData:true});setInterval(tick,1000);window.addEventListener('load',function(){run();setTimeout(run,600);setTimeout(run,1800)});document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.bottom-nav button,.bottom-nav a,nav button,nav a');if(!b||b.closest('#eaHome'))return;var txt=(b.textContent||'').trim(),s=state(),hit=null,up='';MIS.forEach(function(m){if(m.tab.test(txt)&&s.m.done.indexOf(m.id)<0){s.m.done.push(m.id);up+=addXP(s,m.xp);hit=m}});if(hit){save(s);toast('Mission done +'+hit.xp+' XP'+up);render()}},true);run()
+var timer;var obs=new MutationObserver(function(ms){if(window.__eaScrolling)return;var box=document.getElementById('eaHome');if(box&&ms.every(function(m){var n=m.target.nodeType===1?m.target:m.target.parentElement;return n&&box.contains(n)}))return;clearTimeout(timer);timer=setTimeout(run,200)});obs.observe(document.body,{childList:true,subtree:true,characterData:true});setInterval(tick,1000);window.addEventListener('load',function(){run();setTimeout(run,600);setTimeout(run,1800)});document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.bottom-nav button,.bottom-nav a,nav button,nav a');if(!b||b.closest('#eaHome'))return;var txt=(b.textContent||'').trim(),s=state(),hit=null,up='';MIS.forEach(function(m){if(m.tab.test(txt)&&s.m.done.indexOf(m.id)<0){s.m.done.push(m.id);up+=addXP(s,m.xp);hit=m}});if(hit){save(s);toast('Mission done +'+hit.xp+' XP'+up);render()}},true);run()
 })();
 </script>
 <style id="ea-fixed-background-performance">
@@ -2788,6 +2788,18 @@ body:not(.chat-open) .wrap{min-height:100vh!important;padding-bottom:150px!impor
 #chatConversationView:not(.hidden),#communityPage.chat-fullscreen{overscroll-behavior:contain}
 </style>
 
+
+<script id="ea-scroll-performance-guard">
+window.addEventListener('scroll',function(){
+  window.__eaScrolling=true;
+  clearTimeout(window.__eaST);
+  window.__eaST=setTimeout(function(){window.__eaScrolling=false},200);
+},{passive:true,capture:true});
+</script>
+<style id="ea-scroll-performance-guard-css">
+*{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+*{text-shadow:none!important}
+</style>
 <script id="ea-stable-scroll-repair-js">
 /* Keep footer content in the normal page flow. */
 (function(){
