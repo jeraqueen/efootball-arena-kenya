@@ -2086,7 +2086,7 @@ $('signOut').addEventListener('click',async()=>{await sb.auth.signOut();setAuthS
 $('reloadTournaments').addEventListener('click',loadTournaments);$('reloadPayments')?.addEventListener('click',loadPendingPayments);$('refreshCommunity')?.addEventListener('click',loadCommunityChat);$('refreshConversation')?.addEventListener('click',loadCommunityChat);$('openArenaChat')?.addEventListener('click',()=>openChatRoom('group'));$('openAdminChat')?.addEventListener('click',()=>openChatRoom('admin'));$('backToChats')?.addEventListener('click',()=>{$('chatConversationView').classList.add('hidden');$('chatListView').classList.remove('hidden');$('communityPage').classList.remove('chat-fullscreen');document.body.classList.remove('chat-open')});$('communityForm')?.addEventListener('submit',async e=>{e.preventDefault();if(!currentUser)return;const form=e.currentTarget,input=form.elements.message,value=String(input.value||'').trim();if(!value)return;const button=form.querySelector('button[type=submit]');button.disabled=true;try{const {error}=await sb.from('community_messages').insert({user_id:currentUser.id,message:value,room_type:currentChatRoom});if(error)throw error;input.value='';await loadCommunityChat()}catch(err){message('communityNotice','Message could not be sent: '+(err.message||'Please try again.'),true)}finally{button.disabled=false}});$('recordVoice')?.addEventListener('click',async()=>{const status=$('voiceStatus'),button=$('recordVoice');if(voiceRecorder?.state==='recording'){voiceRecorder.stop();button.classList.remove('recording');button.textContent='🎙';status.textContent='Sending voice note…';return}if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){status.textContent='Voice recording is not supported in this browser.';return}try{voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});voiceChunks=[];const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(t=>MediaRecorder.isTypeSupported(t));voiceRecorder=new MediaRecorder(voiceStream,mime?{mimeType:mime}:undefined);voiceRecorder.ondataavailable=e=>{if(e.data.size)voiceChunks.push(e.data)};voiceRecorder.onstop=async()=>{voiceStream?.getTracks().forEach(t=>t.stop());const blob=new Blob(voiceChunks,{type:voiceRecorder.mimeType||'audio/webm'});if(!blob.size)return;try{if(blob.size>10*1024*1024)throw new Error('Please record a shorter voice note.');const ext=blob.type.includes('mp4')?'mp4':blob.type.includes('ogg')?'ogg':'webm',path=currentUser.id+'/'+Date.now()+'.'+ext;const up=await sb.storage.from('community-voice').upload(path,blob,{contentType:blob.type});if(up.error)throw up.error;const ins=await sb.from('community_messages').insert({user_id:currentUser.id,message:'🎤 Voice message',audio_path:path});if(ins.error)throw ins.error;status.textContent='Voice message sent';await loadCommunityChat()}catch(err){status.textContent='Voice note failed: '+(err.message||'Please try again.')}};voiceRecorder.start();button.classList.add('recording');button.textContent='■';status.textContent='Recording… tap ■ to send'}catch(err){status.textContent='Microphone permission is needed to record.'}});$('reloadEntries').addEventListener('click',loadEntries);$('reloadMatches').addEventListener('click',()=>loadMatches());$('viewFixtures').addEventListener('click',()=>{ $('matchesTitle').textContent='My fixtures';loadMatches('fixtures');$('matchesPanel').scrollIntoView({behavior:'smooth'})});$('viewResults').addEventListener('click',()=>{ $('matchesTitle').textContent='Results & standings';loadMatches('results');$('matchesPanel').scrollIntoView({behavior:'smooth'})});$('viewProfile').addEventListener('click',()=>$('profilePanel').scrollIntoView({behavior:'smooth'}));document.querySelectorAll('[data-scroll]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.scroll)?.scrollIntoView({behavior:'smooth'})));$('refreshBtn').addEventListener('click',async()=>{await loadTournaments();await loadEntries();await loadMatches()});$('browseBtn')?.addEventListener('click',()=>$('tournaments')?.scrollIntoView({behavior:'smooth'}));$('accountBtn')?.addEventListener('click',()=>$('accountSection')?.scrollIntoView({behavior:'smooth'}));
 sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);if(session?.user){setTimeout(()=>{ensureProfile(session.user).then(loadEntries);loadPendingPayments()},0)}else{loadEntries()}});
 (async()=>{const {data:{session}}=await sb.auth.getSession();setAuthState(session?.user||null);if(session?.user){await ensureProfile(session.user)}await loadTournaments();await loadEntries();if(session?.user){await loadMatches();await loadPendingPayments();await loadCommunityChat()}})();
-</script><script>(function(){function start(){var poster=document.getElementById("registerSplash"),loader=document.getElementById("introLoader");if(!poster||!loader)return;var finished=false;function finish(){if(finished)return;finished=true;try{if(window.stopArenaWelcomeAudio)window.stopArenaWelcomeAudio()}catch(e){}poster.classList.remove("visible");poster.style.display="none";loader.style.display="none";document.body.classList.remove("intro-active");try{if(typeof showPage==="function")showPage(currentUser?"dashboardPage":"homePage")}catch(e){}}document.body.classList.add("intro-active");poster.style.display="block";poster.classList.add("visible");loader.style.display="none";window.setTimeout(function(){try{if(window.playArenaSound)window.playArenaSound()}catch(e){}},0);window.setTimeout(function(){if(finished)return;poster.classList.remove("visible");poster.style.display="none";loader.style.display="flex";window.setTimeout(finish,7000)},5000);window.setTimeout(finish,12000)}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start()})();</script><script id="arena-voice-player-upgrade">
+</script><script>(function(){function start(){var poster=document.getElementById("registerSplash"),loader=document.getElementById("introLoader");if(!poster||!loader)return;var finished=false;function finish(){if(finished)return;finished=true;try{if(window.stopArenaWelcomeAudio)window.stopArenaWelcomeAudio()}catch(e){}poster.classList.remove("visible");poster.style.display="none";loader.style.display="none";document.body.classList.remove("intro-active");try{if(typeof showPage==="function")showPage(currentUser?"dashboardPage":"homePage")}catch(e){}}document.body.classList.add("intro-active");poster.style.display="block";poster.classList.add("visible");loader.style.display="none";window.setTimeout(function(){try{if(window.playArenaSound)window.playArenaSound()}catch(e){}},1000);window.setTimeout(function(){if(finished)return;poster.classList.remove("visible");poster.style.display="none";loader.style.display="flex";window.setTimeout(finish,7000)},5000);window.setTimeout(finish,12000)}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start()})();</script><script id="arena-voice-player-upgrade">
 (function(){
   var PLAY='<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
   var PAUSE='<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
@@ -2177,62 +2177,25 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
 })();
 </script><script id="arena-welcome-cheer">
 (function(){
-  var cheers=null, welcome=null, active=false;
+  var cheers=null, welcome=null, stopped=false;
   var root='https://raw.githubusercontent.com/jeraqueen/efootball-arena-kenya/main/';
   function getAudio(){
-    if(!cheers){
-      cheers=new Audio(root+'cheers.mp3');
-      cheers.preload='auto';
-      cheers.loop=true;
-      cheers.volume=0.48;
-    }
-    if(!welcome){
-      welcome=new Audio(root+'welcome.mp3');
-      welcome.preload='auto';
-      welcome.loop=false;
-      welcome.volume=1;
-    }
+    if(!cheers){cheers=new Audio(root+'cheers.mp3');cheers.preload='auto';cheers.loop=true;cheers.volume=0.48;}
+    if(!welcome){welcome=new Audio(root+'welcome.mp3');welcome.preload='auto';welcome.loop=false;welcome.volume=1;}
   }
   function stop(){
-    [cheers,welcome].forEach(function(a){
-      if(!a)return;
-      try{a.pause();a.currentTime=0;}catch(e){}
-    });
-    active=false;
+    stopped=true;
+    [cheers,welcome].forEach(function(a){if(a){try{a.pause();a.currentTime=0;}catch(e){}}});
   }
   function play(){
-    getAudio();
-    stop();
-    active=true;
-    try{cheers.currentTime=0;}catch(e){}
-    try{welcome.currentTime=0;}catch(e){}
-    var p1=cheers.play(), p2=welcome.play();
+    getAudio();stopped=false;
+    try{cheers.currentTime=0;welcome.currentTime=0;}catch(e){}
+    var p1=cheers.play(),p2=welcome.play();
     if(p1&&p1.catch)p1.catch(function(){});
     if(p2&&p2.catch)p2.catch(function(){});
   }
-  window.playArenaSound=function(force){
-    if(!force && (localStorage.getItem('arenaSound')==='off' || sessionStorage.getItem('arenaPlayed')))return;
-    sessionStorage.setItem('arenaPlayed','1');
-    play();
-  };
+  window.playArenaSound=function(){if(!stopped)play();};
   window.stopArenaWelcomeAudio=stop;
-  document.addEventListener('click',function(e){
-    var b=e.target&&e.target.closest&&e.target.closest('#arenaSoundButton');
-    if(!b)return;
-    e.preventDefault();
-    try{localStorage.setItem('arenaSound','on');sessionStorage.removeItem('arenaPlayed');play();}catch(err){}
-    b.textContent='⚽ STADIUM WELCOME PLAYING';
-    b.disabled=true;
-    setTimeout(function(){b.disabled=false;b.textContent='🔊 HEAR THE STADIUM'},3000);
-  },true);
-  ['pointerdown','keydown'].forEach(function(ev){
-    window.addEventListener(ev,function once(){
-      window.removeEventListener(ev,once);
-      if(active)return;
-      var splash=document.getElementById('registerSplash');
-      if(splash&&splash.classList.contains('visible'))play();
-    },{once:true});
-  });
 })();
 </script>
 <script id="arena-group-only-chat">
