@@ -2256,82 +2256,105 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
 
 <script id="arena-ui-sound-effects">
 (function(){
-  var ctx=null, master=null, ambienceGain=null, ambienceStarted=false, lastClick=0, motionTimer=null;
-  function setup(){
-    if(ctx)return ctx;
-    var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
-    ctx=new AC();
-    master=ctx.createGain();master.gain.value=.82;master.connect(ctx.destination);
+  var KEY='arenaSound', TARGET=.2, ctx=null, master=null, bg=null, ft, last=0, unlocked=false;
+  function on(){try{return localStorage.getItem(KEY)!=='off';}catch(e){return true;}}
+  function ac(){
+    if(!ctx){
+      var AC=window.AudioContext||window.webkitAudioContext; if(!AC)return null;
+      ctx=new AC(); master=ctx.createGain(); master.gain.value=.5; master.connect(ctx.destination);
+    }
+    if(ctx.state==='suspended')ctx.resume().catch(function(){});
     return ctx;
   }
-  function resume(){
-    var c=setup();if(c&&c.state==='suspended')c.resume().catch(function(){});return c;
+  function blip(f1,f2,dur,type,vol,when,lp){
+    var c=ac(); if(!c)return;
+    var t=c.currentTime+(when||0), o=c.createOscillator(), g=c.createGain(), out=g;
+    o.type=type||'sine'; o.frequency.setValueAtTime(f1,t);
+    if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol||.45,t+.004);
+    g.gain.exponentialRampToValueAtTime(.001,t+dur); o.connect(g);
+    if(lp){var f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;g.connect(f);out=f;}
+    out.connect(master); o.start(t); o.stop(t+dur+.03);
   }
-  function sweep(from,to,dur,vol,wave){
-    var c=resume();if(!c||!master)return;
-    var now=c.currentTime,o=c.createOscillator(),g=c.createGain();
-    o.type=wave||'sawtooth';o.frequency.setValueAtTime(Math.max(1,from),now);
-    o.frequency.exponentialRampToValueAtTime(Math.max(1,to),now+dur);
-    g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),now+.018);
-    g.gain.exponentialRampToValueAtTime(.0001,now+dur);
-    var f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=wave==='sine'?2600:1700;
-    o.connect(f);f.connect(g);g.connect(master);o.start(now);o.stop(now+dur+.03);
+  function whoosh(dur,vol){
+    var c=ac(); if(!c)return;
+    var n=Math.floor(c.sampleRate*dur), b=c.createBuffer(1,n,c.sampleRate), d=b.getChannelData(0);
+    for(var i=0;i<n;i++)d[i]=Math.random()*2-1;
+    var s=c.createBufferSource(); s.buffer=b;
+    var f=c.createBiquadFilter(); f.type='bandpass'; f.Q.value=1.2;
+    var t=c.currentTime; f.frequency.setValueAtTime(500,t); f.frequency.exponentialRampToValueAtTime(3500,t+dur);
+    var g=c.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    s.connect(f); f.connect(g); g.connect(master); s.start(t);
   }
-  function blip(freq,dur,vol,wave){
-    var c=resume();if(!c||!master)return;
-    var now=c.currentTime,o=c.createOscillator(),g=c.createGain();
-    o.type=wave||'triangle';o.frequency.setValueAtTime(freq,now);
-    g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),now+.008);
-    g.gain.exponentialRampToValueAtTime(.0001,now+dur);
-    o.connect(g);g.connect(master);o.start(now);o.stop(now+dur+.02);
+  var FX={
+    tap:function(){blip(900,1500,.06,'triangle',.4);},
+    nav:function(){whoosh(.09,.3); blip(600,1100,.08,'sine',.35,.02);},
+    confirm:function(){blip(110,330,.2,'sawtooth',.22,0,1200); blip(700,900,.08,'triangle',.4); blip(1050,1400,.14,'triangle',.45,.07);},
+    back:function(){blip(900,450,.1,'triangle',.38);}
+  };
+  function kind(el){
+    var t=(el.textContent||'').trim();
+    if(el.closest('.bottom-nav,nav'))return 'nav';
+    if(el.classList.contains('ea-dclose')||/cancel|close|back|hide|sign\s*out|log\s*out|delete|remove/i.test(t))return 'back';
+    if(el.classList.contains('ea-join')||el.classList.contains('send-new')||
+       /join|submit|pay|send|confirm|save|start|play|sign\s*in|log\s*in|register|create|generate/i.test(t))return 'confirm';
+    return 'tap';
   }
-  function startAmbience(){
-    var c=resume();if(!c||ambienceStarted)return;ambienceStarted=true;
-    // Quiet, layered stadium-electronic bed with repeating synth pulses.
-    var bed=c.createGain();bed.gain.value=.0001;bed.connect(master);ambienceGain=bed;
-    var osc=c.createOscillator(), og=c.createGain(), filter=c.createBiquadFilter();
-    osc.type='sawtooth';osc.frequency.value=55;filter.type='lowpass';filter.frequency.value=145;
-    og.gain.value=.10;osc.connect(filter);filter.connect(og);og.connect(bed);osc.start();
-    var lfo=c.createOscillator(),lg=c.createGain();lfo.type='sine';lfo.frequency.value=.12;lg.gain.value=.018;
-    lfo.connect(lg);lg.connect(bed.gain);lfo.start();
-    var now=c.currentTime;bed.gain.setValueAtTime(.0001,now);bed.gain.linearRampToValueAtTime(.13,now+1.2);
-    function loop(){
-      if(!ctx||ctx.state!=='running')return;
-      // Short rising/falling "choo-choo" selection sounds, like a game menu.
-      sweep(240,760,.13,.19,'triangle');
-      setTimeout(function(){sweep(610,310,.16,.16,'triangle');},150);
-      setTimeout(function(){blip(980,.055,.09,'sine');},350);
-      motionTimer=setTimeout(loop,2600);
-    }
-    loop();
+  var SEL='button,a[href],[role="button"],.widget,.ea-row,.ea-ditem,summary,select,label[for]';
+  function fade(to,ms){
+    if(!bg)return; clearInterval(ft);
+    var from=bg.volume, steps=Math.max(1,ms/50), i=0;
+    ft=setInterval(function(){
+      i++; bg.volume=Math.min(1,Math.max(0,from+(to-from)*i/steps));
+      if(i>=steps)clearInterval(ft);
+    },50);
   }
-  function clickSound(target){
-    var now=Date.now();if(now-lastClick<90)return;lastClick=now;
-    startAmbience();
-    // Stronger two-part menu confirmation chirp.
-    sweep(520,1120,.085,.30,'triangle');
-    setTimeout(function(){sweep(920,430,.11,.23,'triangle');},75);
-    if(target&&target.matches('button,.widget,.tournament,.feature-card,[role="button"]')){
-      setTimeout(function(){blip(1180,.035,.11,'sine');},150);
-    }
+  function startBg(){
+    if(bg)return;
+    bg=new Audio('pg.mp3'); bg.loop=true; bg.volume=0; bg.preload='auto';
+    bg.play().catch(function(){});
+    var wait=sessionStorage.getItem('eaBg')?500:15000;
+    sessionStorage.setItem('eaBg','1');
+    setTimeout(function(){if(on())fade(TARGET,3000);},wait);
   }
-  function attach(){
-    document.addEventListener('pointerdown',function(e){
-      var target=e.target&&e.target.closest&&e.target.closest('button,a,[role="button"],.widget,.tournament,.feature-card,.stat,.pill,[data-scroll]');
-      if(!target||target.disabled||target.getAttribute('aria-disabled')==='true')return;
-      if(target.matches('input,select,textarea,[contenteditable="true"]'))return;
-      clickSound(target);
-    },{capture:true,passive:true});
-    // Any first intentional interaction unlocks audio on mobile browsers.
-    ['touchstart','keydown'].forEach(function(evt){
-      document.addEventListener(evt,function(){resume();startAmbience();},{once:true,passive:true});
-    });
-    document.addEventListener('visibilitychange',function(){
-      if(document.hidden&&ctx&&ctx.state==='running')ctx.suspend().catch(function(){});
-      else if(!document.hidden&&ctx&&ctx.state==='suspended')ctx.resume().catch(function(){});
-    });
+  document.addEventListener('pointerdown',function(e){
+    if(!unlocked){unlocked=true;ac();if(on())startBg();}
+    if(!on())return;
+    var el=e.target.closest&&e.target.closest(SEL);if(!el||el.disabled)return;
+    var now=Date.now();if(now-last<40)return;last=now;
+    FX[kind(el)]();
+    if(navigator.vibrate)navigator.vibrate(8);
+  },true);
+  document.addEventListener('play',function(e){
+    if(e.target.tagName==='AUDIO'&&on())fade(.05,300);
+  },true);
+  function restore(){
+    var busy=[].some.call(document.querySelectorAll('audio'),function(a){return !a.paused;});
+    if(!busy&&on())fade(TARGET,700);
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',attach,{once:true});else attach();
+  document.addEventListener('pause',restore,true);
+  document.addEventListener('ended',restore,true);
+  document.addEventListener('visibilitychange',function(){
+    if(!bg)return;
+    if(document.hidden)bg.pause();else if(on())bg.play().catch(function(){});
+  });
+  function label(){var s=document.getElementById('eaSoundTxt');if(s)s.textContent='Sound: '+(on()?'On':'Off');}
+  function setOn(v){
+    localStorage.setItem(KEY,v?'on':'off');
+    if(v){if(!bg)startBg();else{bg.play().catch(function(){});fade(TARGET,800);}}
+    else if(bg){fade(0,300);setTimeout(function(){bg.pause();},350);}
+    label();
+  }
+  function inject(){
+    var foot=document.querySelector('#eaDrawer .ea-dfoot');
+    if(!foot||document.getElementById('eaSoundRow'))return;
+    var b=document.createElement('button');b.type='button';b.id='eaSoundRow';b.className='ea-ditem';
+    b.innerHTML='<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></span><span id="eaSoundTxt"></span>';
+    b.onclick=function(){setOn(!on());};
+    foot.insertBefore(b,foot.firstChild);label();
+  }
+  window.addEventListener('load',function(){inject();setTimeout(inject,800);setTimeout(inject,2000);});
+  inject();
 })();
 </script>
 
