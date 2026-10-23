@@ -2064,26 +2064,18 @@ function message(id,text,error=false){const el=$(id);el.textContent=text;el.clas
 function clearMessage(id){$(id).classList.add('hidden')}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function copyableCodeField(label,value){
- const v=String(value??'').trim();if(!v)return '';
- if(/room number/i.test(label)&&/^\d{8}$/.test(v)){
-  return '<div class="dm-code-field"><label>'+esc(label)+' · 8 digits</label><div class="room-code-display">'+[0,1,2,3].map(i=>'<span>'+esc(v.slice(i*2,i*2+2))+'</span>').join('')+'</div><div class="dm-code-line"><code>'+esc(v)+'</code><button type="button" class="dm-copy-code" data-copy-code="'+esc(v)+'">Copy all 8</button></div></div>';
- }
- return '<div class="dm-code-field"><label>'+esc(label)+'</label><div class="dm-code-line"><code>'+esc(v)+'</code><button type="button" class="dm-copy-code" data-copy-code="'+esc(v)+'">Copy</button></div></div>';
+ const v=String(value??'').trim();
+ if(!/^\d{8}$/.test(v))return '';
+ return '<div class="dm-code-field"><label>Room number · 8 digits</label><div class="room-code-display">'+[0,1,2,3].map(i=>'<span>'+esc(v.slice(i*2,i*2+2))+'</span>').join('')+'</div><div class="dm-code-line"><code>'+esc(v)+'</code><button type="button" class="dm-copy-code" data-copy-code="'+esc(v)+'">Copy all 8</button></div></div>';
 }
 function renderDirectMessageBody(value){
  const raw=String(value??'');
- const fields=[];
- const patterns=[
-  ['Room number',/(?:friend\s*match\s*)?room\s*(?:number|no\.?|code|#)\s*[:=\-]?\s*([A-Za-z0-9_-]{3,40})/i],
-  ['Room password',/(?:room\s*)?password\s*[:=\-]?\s*([A-Za-z0-9_-]{2,80})/i]
- ];
- let cleaned=raw;
- patterns.forEach(([label,re])=>{const match=cleaned.match(re);if(match){fields.push(copyableCodeField(label,match[1]));cleaned=cleaned.replace(match[0],label+': '+match[1])}});
- const isStandaloneCode=/^[A-Za-z0-9_-]{4,40}$/.test(raw.trim());
- if(!fields.length&&isStandaloneCode)fields.push(copyableCodeField('Copy code',raw.trim()));
- return '<div class="dm-message-text">'+esc(cleaned)+'</div>'+fields.join('');
+ const match=raw.match(/\b\d{8}\b/);
+ const code=match?match[0]:'';
+ // Ordinary message text stays ordinary text. Only an actual eight-digit number gets a copy control.
+ const fields=code?[copyableCodeField('Room number',code)]:[];
+ return '<div class="dm-message-text">'+esc(raw)+'</div>'+fields.join('');
 }
-
 function time(v){if(!v)return 'Time to be announced';const d=new Date(v);return d.toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'})}
 function setAuthState(user){currentUser=user;window.__arenaSignedIn=!!user;$('userBadge').textContent=user?(user.user_metadata?.username||user.user_metadata?.display_name||user.email):'Guest player';$('signOut').classList.toggle('hidden',!user);$('authForms').classList.toggle('hidden',!!user);$('profilePanel').classList.toggle('hidden',!user);document.querySelectorAll('.signed-content').forEach(el=>el.classList.toggle('hidden',!user));$('accountSection').classList.toggle('hidden',!!user);$('guestHomePanel')?.classList.toggle('hidden',!!user);$('signedHomePanel')?.classList.toggle('hidden',!user);if(!user){['tournamentNotice','authNotice','communityNotice'].forEach(id=>{const el=$(id);if(el){el.textContent='';el.classList.add('hidden');el.classList.remove('error')}})}if(user){const playerName=user.user_metadata?.display_name||user.user_metadata?.username||'Player';$('homePlayerName').textContent=playerName;$('profileName').textContent=playerName;$('profileDetails').textContent='@'+(user.user_metadata?.username||'player')+' • eFootball Mobile';$('widgetProfileText').textContent='@'+(user.user_metadata?.username||'player')+' • eFootball Mobile';}}
 let selectedTournamentType=null;
