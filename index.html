@@ -2296,7 +2296,8 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
     var g=c.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);src.connect(f);f.connect(g);g.connect(ac.master);src.start(t);
   }
   var FX={tap:function(){blip(900,1500,.06,'triangle',.4);},nav:function(){whoosh(.09,.3);blip(600,1100,.08,'sine',.35,.02);},confirm:function(){blip(110,330,.2,'sawtooth',.22,0,1200);blip(700,900,.08,'triangle',.4);blip(1050,1400,.14,'triangle',.45,.07);},back:function(){blip(900,450,.1,'triangle',.38);}};
-  function kind(el){var t=(el.textContent||'').trim();if(el.closest('.bottom-nav,nav'))return'nav';if(el.classList.contains('ea-dclose')||/cancel|close|back|hide|sign\s*out|log\s*out|delete|remove/i.test(t))return'back';if(el.classList.contains('ea-join')||el.classList.contains('send-new')||/join|submit|pay|send|confirm|save|start|play|sign\s*in|log\s*in|register|create|generate/i.test(t))return'confirm';return'tap';}
+  // Use the same bottom-navigation sound for every pressable control.
+  function kind(el){return'nav';}
   var SEL='button,a[href],[role="button"],.widget,.ea-row,.ea-ditem,summary,select,label[for]';
   // Play effects only for completed clicks, never for touch-down/scroll gestures.
   document.addEventListener('click',function(e){
