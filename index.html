@@ -2298,8 +2298,10 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
   var FX={tap:function(){blip(900,1500,.06,'triangle',.4);},nav:function(){whoosh(.09,.3);blip(600,1100,.08,'sine',.35,.02);},confirm:function(){blip(110,330,.2,'sawtooth',.22,0,1200);blip(700,900,.08,'triangle',.4);blip(1050,1400,.14,'triangle',.45,.07);},back:function(){blip(900,450,.1,'triangle',.38);}};
   function kind(el){var t=(el.textContent||'').trim();if(el.closest('.bottom-nav,nav'))return'nav';if(el.classList.contains('ea-dclose')||/cancel|close|back|hide|sign\s*out|log\s*out|delete|remove/i.test(t))return'back';if(el.classList.contains('ea-join')||el.classList.contains('send-new')||/join|submit|pay|send|confirm|save|start|play|sign\s*in|log\s*in|register|create|generate/i.test(t))return'confirm';return'tap';}
   var SEL='button,a[href],[role="button"],.widget,.ea-row,.ea-ditem,summary,select,label[for]';
-  document.addEventListener('pointerdown',function(e){
+  // Play effects only for completed clicks, never for touch-down/scroll gestures.
+  document.addEventListener('click',function(e){
     if(!on())return;var el=e.target.closest&&e.target.closest(SEL);if(!el||el.disabled)return;
+    if(e.defaultPrevented)return;
     var now=Date.now();if(now-last<40)return;last=now;try{FX[kind(el)]();if(navigator.vibrate)navigator.vibrate(8);}catch(err){}
   },true);
   function unlock(){if(!on())return;unlocked=true;startBg();ac();}
