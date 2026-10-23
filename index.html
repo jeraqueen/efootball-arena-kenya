@@ -177,6 +177,19 @@ body.chat-open::before,body.chat-open::after{background-attachment:fixed!importa
 }
 #communityPage.chat-fullscreen #voiceStatus{flex:0 0 auto!important;padding:0 10px 5px!important;background:#0a1828!important}
 @media(prefers-reduced-motion:no-preference){#communityPage.chat-fullscreen *{scroll-behavior:auto!important;transition:none!important}}
+
+/* Private opponent messaging */
+#opponentDM{position:fixed;inset:0;z-index:12000;background:#020711eF;display:none;align-items:center;justify-content:center;padding:14px}
+#opponentDM.visible{display:flex}
+#opponentDM .dm-window{width:min(680px,100%);height:min(78vh,760px);display:flex;flex-direction:column;background:#0c1b2d;border:1px solid #3de0a177;border-radius:20px;overflow:hidden;box-shadow:0 20px 80px #000b}
+.dm-head{display:flex;align-items:center;gap:12px;padding:15px;background:#10263c;border-bottom:1px solid #28415c}
+.dm-head-copy{flex:1;min-width:0}.dm-head-copy strong{display:block;font-size:17px}.dm-head-copy small{color:#9bb0c8}
+.dm-close{background:#203954;color:#eef5ff;padding:8px 12px}
+#opponentDMMessages{flex:1;overflow:auto;display:flex;flex-direction:column;gap:9px;padding:14px;background:linear-gradient(#071421,#091727)}
+.dm-bubble{max-width:86%;padding:10px 12px;border-radius:14px;background:#172b40;border:1px solid #29445f;align-self:flex-start;overflow-wrap:anywhere;white-space:pre-wrap}
+.dm-bubble.own{align-self:flex-end;background:#075e4c;border-color:#14886e}.dm-bubble small{display:block;margin-top:5px;font-size:10px;opacity:.72}
+.dm-compose{display:flex;gap:8px;padding:12px;border-top:1px solid #28415c;background:#0d1c2e}.dm-compose textarea{flex:1;min-width:0;resize:none;max-height:110px;border-radius:12px;border:1px solid #28415c;background:#071421;color:#eef5ff;padding:11px;font:inherit}.dm-compose button{align-self:flex-end}
+.dm-opponent-btn{display:block;width:100%;margin:12px 0;background:linear-gradient(100deg,#3de0a1,#66b8ff);color:#061525;font-weight:900}
 </style>
 <style id="arena-poster-background">
 /* ===== Blurred poster, visible everywhere ===== */
@@ -2126,7 +2139,7 @@ async function loadBracketOverview(){
    opponent=profile?.username?'@'+profile.username:(profile?.display_name||'Arena player');
   }
   const roundLabel=Number(live.round_number)===1?'Opening round':'Round '+esc(live.round_number);
-  cards.push('<article class="tournament"><div><span class="pill">Your entry #'+esc(reg.entry_number??'—')+'</span><span class="pill blue">'+esc(roundLabel)+'</span></div><h3>'+esc(t.title)+'</h3><div class="notice"><div class="small muted">YOUR ASSIGNED OPPONENT</div><strong style="font-size:20px">'+(isBye?'BYE — you advance automatically':esc(opponent))+'</strong><p class="small"><strong>Kickoff:</strong> '+esc(startLabel)+'</p><p class="small muted">Match '+esc(live.match_number)+' · Your match is scheduled for the tournament start time shown above.</p></div></article>');
+  cards.push('<article class="tournament"><div><span class="pill">Your entry #'+esc(reg.entry_number??'—')+'</span><span class="pill blue">'+esc(roundLabel)+'</span></div><h3>'+esc(t.title)+'</h3><div class="notice"><div class="small muted">YOUR ASSIGNED OPPONENT</div><strong style="font-size:20px">'+(isBye?'BYE — you advance automatically':esc(opponent))+'</strong><p class="small"><strong>Kickoff:</strong> '+esc(startLabel)+'</p><p class="small muted">Match '+esc(live.match_number)+' · Your match is scheduled for the tournament start time shown above.</p>'+(opponentId&&!isBye?'<button type="button" class="dm-opponent-btn" data-opponent-message="'+esc(opponentId)+'" data-opponent-name="'+esc(opponent)+'">✉ Message Opponent</button>':'')+'</div></article>');
  }
  if(!cards.length){
   box.className='empty';
@@ -2195,7 +2208,9 @@ scoreHtml='<div class="notice"><strong>Your submitted report: '+esc(mine.player_
 }else if(active)scoreHtml='<form class="form" data-score-form="'+esc(m.id)+'"><strong>Submit your independent match result</strong><p class="small muted">Enter the final score as it appeared in your game and attach the original result-screen screenshot. Your opponent will submit their own report separately.</p><div class="grid"><label>Your goals<input type="number" name="player_score" min="0" max="99" required></label><label>Opponent goals<input type="number" name="opponent_score" min="0" max="99" required></label></div><label>Final-result screenshot (JPG/PNG/WebP, max 5 MB)<input type="file" name="evidence" accept="image/jpeg,image/png,image/webp" required></label><label>Note (optional)<input name="notes" maxlength="1000"></label><button type="submit">Upload evidence & submit score</button></form>';
 else scoreHtml='<p class="small muted">'+(m.status==='bye'?'BYE — you advance automatically.':m.status==='confirmed'?'Official result confirmed.':'Waiting for your opponent to advance.')+'</p>';
 const myScore=m.player1_id===currentUser.id?m.player1_score:m.player2_score,opScore=m.player1_id===currentUser.id?m.player2_score:m.player1_score;
-return '<article class="tournament"><span class="pill blue">'+esc(m.status.replaceAll('_',' '))+'</span><h3>'+esc(m.tournaments?.title||'Tournament match')+'</h3><p class="small">Round '+esc(m.round_number)+' • Match '+esc(m.match_number)+'</p><p class="small">You: '+(myScore??'—')+' : '+(opScore??'—')+' Opponent</p><p class="small muted">'+esc(time(m.scheduled_at))+'</p>'+(m.dispute_reason?'<div class="notice error">'+esc(m.dispute_reason)+'</div>':'')+roomHtml+scoreHtml+'</article>'
+const opponentId=m.player1_id===currentUser.id?m.player2_id:m.player1_id;
+const opponentName=opponentId?(m.player1_id===currentUser.id?'Player 2':'Player 1'):'Opponent not assigned';
+return '<article class="tournament"><span class="pill blue">'+esc(m.status.replaceAll('_',' '))+'</span><h3>'+esc(m.tournaments?.title||'Tournament match')+'</h3><p class="small">Round '+esc(m.round_number)+' • Match '+esc(m.match_number)+'</p><p class="small">You: '+(myScore??'—')+' : '+(opScore??'—')+' Opponent</p><p class="small muted">'+esc(time(m.scheduled_at))+'</p>'+(opponentId&&active?'<button type="button" class="dm-opponent-btn" data-opponent-message="'+esc(opponentId)+'" data-opponent-name="'+esc(opponentName)+'">✉ Message Opponent</button>':'')+(m.dispute_reason?'<div class="notice error">'+esc(m.dispute_reason)+'</div>':'')+roomHtml+scoreHtml+'</article>'
 }).join('');
 box.querySelectorAll('[data-room-form]').forEach(form=>form.addEventListener('submit',async e=>{
 e.preventDefault();const fd=new FormData(form),id=form.dataset.roomForm,method=String(fd.get('match_mode')),num=String(fd.get('room_number')||'').trim(),pass=String(fd.get('room_password')||'').trim();
@@ -2929,4 +2944,59 @@ body:not(.chat-open) main,body:not(.chat-open) .page-view,body:not(.chat-open) .
 footer{padding:18px 16px 12px!important}
 @media(max-width:760px){.wrap{padding-top:78px!important}}
 </style>
+
+<div id="opponentDM" aria-hidden="true">
+ <section class="dm-window" role="dialog" aria-modal="true" aria-labelledby="opponentDMTitle">
+  <div class="dm-head"><div class="group-avatar">✉</div><div class="dm-head-copy"><strong id="opponentDMTitle">Message opponent</strong><small>Private match conversation · Share your room code here</small></div><button type="button" class="dm-close" id="closeOpponentDM">✕</button></div>
+  <div id="opponentDMMessages"><div class="empty">Open a fixture and message your opponent here.</div></div>
+  <form id="opponentDMForm" class="dm-compose"><textarea id="opponentDMInput" maxlength="2000" rows="2" placeholder="Type your message or Friend Match room code…" required></textarea><button type="submit" id="opponentDMSend">Send ➤</button></form>
+  <div id="opponentDMNotice" class="small muted" style="padding:0 12px 10px"></div>
+ </section>
+</div>
+<script>
+let dmRecipientId=null,dmRecipientName='Opponent',dmRefreshHandle=null,dmLoading=false;
+function closeOpponentDM(){const m=document.getElementById('opponentDM');m.classList.remove('visible');m.setAttribute('aria-hidden','true');if(dmRefreshHandle){clearInterval(dmRefreshHandle);dmRefreshHandle=null}}
+async function openOpponentDM(id,name){
+ if(!window.currentUser && typeof currentUser==='undefined'){alert('Please sign in first.');return}
+ if(!currentUser){alert('Please sign in first.');return}
+ if(!id||id===currentUser.id){alert('This opponent is not available for private messaging.');return}
+ dmRecipientId=id;dmRecipientName=name||'Opponent';
+ const modal=document.getElementById('opponentDM');modal.classList.add('visible');modal.setAttribute('aria-hidden','false');
+ document.getElementById('opponentDMTitle').textContent='@'+dmRecipientName.replace(/^@/,'');
+ document.getElementById('opponentDMMessages').innerHTML='<div class="empty">Loading private conversation…</div>';
+ document.getElementById('opponentDMNotice').textContent='';
+ await loadOpponentDMMessages();
+ if(dmRefreshHandle)clearInterval(dmRefreshHandle);
+ dmRefreshHandle=setInterval(()=>{if(modal.classList.contains('visible'))loadOpponentDMMessages()},4000);
+ document.getElementById('opponentDMInput').focus();
+}
+async function loadOpponentDMMessages(){
+ if(!currentUser||!dmRecipientId||dmLoading)return;dmLoading=true;
+ const box=document.getElementById('opponentDMMessages'),wasNear=box.scrollHeight-box.scrollTop-box.clientHeight<100;
+ const {data,error}=await sb.from('direct_messages').select('id,sender_id,recipient_id,body,created_at,read_at').or('and(sender_id.eq.'+currentUser.id+',recipient_id.eq.'+dmRecipientId+'),and(sender_id.eq.'+dmRecipientId+',recipient_id.eq.'+currentUser.id+')').order('created_at',{ascending:true}).limit(200);
+ if(error){box.innerHTML='<div class="notice error">Private chat could not load: '+esc(error.message)+'. Please refresh the page and try again.</div>';document.getElementById('opponentDMNotice').textContent='If this continues, the private-message table or permissions may not be ready.';dmLoading=false;return}
+ const rows=data||[];
+ box.className='';box.innerHTML=rows.length?rows.map(m=>'<div class="dm-bubble '+(m.sender_id===currentUser.id?'own':'')+'">'+esc(m.body)+'<small>'+(m.sender_id===currentUser.id?'You':'Opponent')+' · '+esc(new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}))+'</small></div>').join(''):'<div class="empty">No messages yet. Send the first message and agree on the Friend Match room code.</div>';
+ const unread=rows.filter(m=>m.recipient_id===currentUser.id&&!m.read_at).map(m=>m.id);
+ if(unread.length){await sb.from('direct_messages').update({read_at:new Date().toISOString()}).in('id',unread)}
+ if(wasNear||!rows.length)box.scrollTop=box.scrollHeight;
+ dmLoading=false;
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-opponent-message]');
+ if(b){e.preventDefault();openOpponentDM(b.dataset.opponentMessage,b.dataset.opponentName);return}
+ if(e.target.id==='closeOpponentDM'||e.target.id==='opponentDM')closeOpponentDM();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeOpponentDM()});
+document.getElementById('opponentDMForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!currentUser||!dmRecipientId)return;
+ const input=document.getElementById('opponentDMInput'),btn=document.getElementById('opponentDMSend'),body=input.value.trim();
+ if(!body)return;if(body.length>2000){document.getElementById('opponentDMNotice').textContent='Messages must be 2,000 characters or fewer.';return}
+ btn.disabled=true;document.getElementById('opponentDMNotice').textContent='Sending…';
+ const {error}=await sb.from('direct_messages').insert({sender_id:currentUser.id,recipient_id:dmRecipientId,body});
+ btn.disabled=false;
+ if(error){document.getElementById('opponentDMNotice').textContent='Message not sent: '+error.message;return}
+ input.value='';document.getElementById('opponentDMNotice').textContent='Message sent privately.';await loadOpponentDMMessages();
+});
+</script>
 </body></html>
