@@ -2253,4 +2253,74 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
 })();
 </script>
 
+
+<script id="arena-ui-sound-effects">
+(function(){
+  var ctx=null, master=null, ambience=null, started=false, lastClick=0;
+  function audioContext(){
+    if(!ctx){
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC)return null;
+      ctx=new AC();
+      master=ctx.createGain(); master.gain.value=0.18; master.connect(ctx.destination);
+    }
+    if(ctx.state==='suspended')ctx.resume().catch(function(){});
+    return ctx;
+  }
+  function tone(freq, duration, volume, type, endFreq){
+    var c=audioContext(); if(!c||!master)return;
+    var o=c.createOscillator(), g=c.createGain(), now=c.currentTime;
+    o.type=type||'sine'; o.frequency.setValueAtTime(freq,now);
+    if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(1,endFreq),now+duration);
+    g.gain.setValueAtTime(0.0001,now);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume),now+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,now+duration);
+    o.connect(g);g.connect(master);o.start(now);o.stop(now+duration+0.025);
+  }
+  function startAmbience(){
+    var c=audioContext(); if(!c||started)return; started=true;
+    // Soft, low stadium-like atmosphere without loud repeating crowd samples.
+    var buffer=c.createBuffer(1,c.sampleRate*2,c.sampleRate), data=buffer.getChannelData(0);
+    for(var i=0;i<data.length;i++)data[i]=(Math.random()*2-1);
+    var noise=c.createBufferSource();noise.buffer=buffer;noise.loop=true;
+    var filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.value=190;filter.Q.value=.35;
+    ambience=c.createGain();ambience.gain.value=.0001;
+    noise.connect(filter);filter.connect(ambience);ambience.connect(master);noise.start();
+    var now=c.currentTime;
+    ambience.gain.setValueAtTime(.0001,now);
+    ambience.gain.linearRampToValueAtTime(.022,now+2.5);
+    // Gentle distant crowd-like swells, kept deliberately quiet.
+    var lfo=c.createOscillator(), lfoGain=c.createGain();
+    lfo.frequency.value=.075;lfoGain.gain.value=.008;
+    lfo.connect(lfoGain);lfoGain.connect(ambience.gain);lfo.start();
+  }
+  function clickSound(){
+    var now=Date.now();if(now-lastClick<65)return;lastClick=now;
+    startAmbience();
+    tone(880,.045,.045,'sine',620);
+    tone(1320,.025,.012,'triangle',990);
+  }
+  function attach(){
+    document.addEventListener('pointerdown',function(e){
+      var target=e.target&&e.target.closest&&e.target.closest('button,a,[role="button"],.widget,.tournament,.feature-card,.stat,.pill,[data-scroll]');
+      if(!target||target.disabled||target.getAttribute('aria-disabled')==='true')return;
+      if(target.matches('input,select,textarea,[contenteditable="true"]'))return;
+      clickSound();
+    },{capture:true,passive:true});
+    // Browsers require a real user gesture before continuous audio can start.
+    document.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){startAmbience();}
+    },{passive:true});
+    window.addEventListener('pagehide',function(){
+      if(ctx&&ctx.state==='running')ctx.suspend().catch(function(){});
+    });
+    document.addEventListener('visibilitychange',function(){
+      if(document.hidden&&ctx&&ctx.state==='running')ctx.suspend().catch(function(){});
+      else if(!document.hidden&&started&&ctx&&ctx.state==='suspended')ctx.resume().catch(function(){});
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',attach,{once:true});else attach();
+})();
+</script>
+
 </body></html>
