@@ -2601,4 +2601,28 @@ function wire(box){box.addEventListener('click',function(e){var b=e.target.close
 function run(){var signed=document.getElementById('signedHomePanel'),guest=document.getElementById('guestHomePanel');if(!signed||signed.classList.contains('hidden'))return;var h1=signed.querySelector('h1');if(!h1)return;var box=document.getElementById('eaHome');if(!box){box=document.createElement('div');box.id='eaHome';signed.appendChild(box);wire(box);render()}else if(box.dataset.sig!==sig())render();[].forEach.call(signed.children,function(c){if(c!==h1&&c!==box&&!c.classList.contains('eyebrow'))c.classList.add('ea-hide')});if(guest)guest.classList.remove('ea-hide')}
 var timer;var obs=new MutationObserver(function(ms){var box=document.getElementById('eaHome');if(box&&ms.every(function(m){var n=m.target.nodeType===1?m.target:m.target.parentElement;return n&&box.contains(n)}))return;clearTimeout(timer);timer=setTimeout(run,200)});obs.observe(document.body,{childList:true,subtree:true,characterData:true});setInterval(tick,1000);window.addEventListener('load',function(){run();setTimeout(run,600);setTimeout(run,1800)});document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.bottom-nav button,.bottom-nav a,nav button,nav a');if(!b||b.closest('#eaHome'))return;var txt=(b.textContent||'').trim(),s=state(),hit=null,up='';MIS.forEach(function(m){if(m.tab.test(txt)&&s.m.done.indexOf(m.id)<0){s.m.done.push(m.id);up+=addXP(s,m.xp);hit=m}});if(hit){save(s);toast('Mission done +'+hit.xp+' XP'+up);render()}},true);run()
 })();
-</script></body></html>
+</script>
+<style id="ea-fixed-background-performance">
+/* Keep the existing stadium poster fixed; remove zoom, blur filters and scroll repaint overhead. */
+html{background:#050b14!important}
+body{background:transparent!important;background-image:none!important}
+body::before{
+  content:""!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:-1!important;
+  display:block!important;
+  pointer-events:none!important;
+  transform:none!important;
+  filter:none!important;
+  opacity:1!important;
+  background-image:linear-gradient(180deg,rgba(5,11,20,.36) 0%,rgba(5,11,20,.48) 55%,rgba(5,11,20,.72) 100%),url("https://raw.githubusercontent.com/jeraqueen/efootball-arena-kenya/main/poster.jpg1")!important;
+  background-position:center center!important;
+  background-size:cover!important;
+  background-repeat:no-repeat!important;
+  background-attachment:scroll!important;
+  will-change:auto!important;
+}
+body::after{content:none!important;display:none!important;filter:none!important;transform:none!important}
+</style>
+</body></html>
