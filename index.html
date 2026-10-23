@@ -2603,17 +2603,19 @@ var timer;var obs=new MutationObserver(function(ms){var box=document.getElementB
 })();
 </script>
 <style id="ea-fixed-background-performance">
-/* Keep the existing stadium poster fixed; remove zoom, blur filters and scroll repaint overhead. */
+/* Stable poster layer: no zoom/blur animation while the page scrolls. */
 html{background:#050b14!important}
 body{background:transparent!important;background-image:none!important}
 body::before{
   content:""!important;
   position:fixed!important;
   inset:0!important;
+  height:100vh!important;
+  height:100lvh!important;
   z-index:-1!important;
   display:block!important;
   pointer-events:none!important;
-  transform:none!important;
+  transform:translateZ(0)!important;
   filter:none!important;
   opacity:1!important;
   background-image:linear-gradient(180deg,rgba(5,11,20,.36) 0%,rgba(5,11,20,.48) 55%,rgba(5,11,20,.72) 100%),url("https://raw.githubusercontent.com/jeraqueen/efootball-arena-kenya/main/poster.jpg1")!important;
@@ -2624,5 +2626,27 @@ body::before{
   will-change:auto!important;
 }
 body::after{content:none!important;display:none!important;filter:none!important;transform:none!important}
+/* Keep the top bar pinned without letting page content slide underneath it. */
+header.nav.app-topbar{
+  position:fixed!important;
+  top:0!important;
+  left:0!important;
+  right:0!important;
+  z-index:100!important;
+  width:100%!important;
+  height:64px!important;
+  min-height:64px!important;
+  margin:0!important;
+  padding-top:0!important;
+  padding-bottom:0!important;
+  padding-left:max(14px,calc((100vw - 1100px)/2 + 20px))!important;
+  padding-right:max(14px,calc((100vw - 1100px)/2 + 20px))!important;
+  background:rgba(7,17,31,.92)!important;
+  border-bottom:1px solid rgba(255,255,255,.10)!important;
+  -webkit-backdrop-filter:blur(12px)!important;
+  backdrop-filter:blur(12px)!important;
+}
+.wrap{padding-top:84px!important}
+@media(max-width:760px){.wrap{padding-top:78px!important}}
 </style>
 </body></html>
