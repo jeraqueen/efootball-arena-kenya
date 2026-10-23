@@ -2063,6 +2063,24 @@ const $=id=>document.getElementById(id);let currentUser=null;let tournaments=[];
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function copyableCodeField(label,value){
+ const v=String(value??'').trim();if(!v)return '';
+ return '<div class="dm-code-field"><label>'+esc(label)+'</label><div class="dm-code-line"><code>'+esc(v)+'</code><button type="button" class="dm-copy-code" data-copy-code="'+esc(v)+'">Copy</button></div></div>';
+}
+function renderDirectMessageBody(value){
+ const raw=String(value??'');
+ const fields=[];
+ const patterns=[
+  ['Room number',/(?:friend\s*match\s*)?room\s*(?:number|no\.?|code|#)\s*[:=\-]?\s*([A-Za-z0-9_-]{3,40})/i],
+  ['Room password',/(?:room\s*)?password\s*[:=\-]?\s*([A-Za-z0-9_-]{2,80})/i]
+ ];
+ let cleaned=raw;
+ patterns.forEach(([label,re])=>{const match=cleaned.match(re);if(match){fields.push(copyableCodeField(label,match[1]));cleaned=cleaned.replace(match[0],label+': '+match[1])}});
+ const isStandaloneCode=/^[A-Za-z0-9_-]{4,40}$/.test(raw.trim());
+ if(!fields.length&&isStandaloneCode)fields.push(copyableCodeField('Copy code',raw.trim()));
+ return '<div class="dm-message-text">'+esc(cleaned)+'</div>'+fields.join('');
+}
+
 function time(v){if(!v)return 'Time to be announced';const d=new Date(v);return d.toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'})}
 function setAuthState(user){currentUser=user;window.__arenaSignedIn=!!user;$('userBadge').textContent=user?(user.user_metadata?.username||user.user_metadata?.display_name||user.email):'Guest player';$('signOut').classList.toggle('hidden',!user);$('authForms').classList.toggle('hidden',!!user);$('profilePanel').classList.toggle('hidden',!user);document.querySelectorAll('.signed-content').forEach(el=>el.classList.toggle('hidden',!user));$('accountSection').classList.toggle('hidden',!!user);$('guestHomePanel')?.classList.toggle('hidden',!!user);$('signedHomePanel')?.classList.toggle('hidden',!user);if(!user){['tournamentNotice','authNotice','communityNotice'].forEach(id=>{const el=$(id);if(el){el.textContent='';el.classList.add('hidden');el.classList.remove('error')}})}if(user){const playerName=user.user_metadata?.display_name||user.user_metadata?.username||'Player';$('homePlayerName').textContent=playerName;$('profileName').textContent=playerName;$('profileDetails').textContent='@'+(user.user_metadata?.username||'player')+' • eFootball Mobile';$('widgetProfileText').textContent='@'+(user.user_metadata?.username||'player')+' • eFootball Mobile';}}
 let selectedTournamentType=null;
@@ -2202,7 +2220,7 @@ box.innerHTML=rows.map(m=>{
 const room=Array.isArray(m.match_room_details)?m.match_room_details[0]:m.match_room_details,reports=m.match_reports||[],mine=reports.find(r=>r.player_id===currentUser.id),hasBoth=!!m.player1_id&&!!m.player2_id,active=!['confirmed','bye'].includes(m.status)&&hasBoth,canShare=!room||room.shared_by===currentUser.id;
 let roomHtml='';
 if(active&&canShare)roomHtml='<form class="form" data-room-form="'+esc(m.id)+'"><strong>Connect in eFootball</strong><label>Match method<select name="match_mode"><option value="friend" '+((room?.match_mode||'friend')==='friend'?'selected':'')+'>Friend Match — assigned opponent</option><option value="quick" '+((room?.match_mode||'friend')==='quick'?'selected':'')+'>Quick Match — random opponent</option></select></label><label>Friend Match room number<input name="room_number" maxlength="40" value="'+esc(room?.room_number||'')+'" placeholder="Room number"></label><label>Room password<input name="room_password" maxlength="80" value="'+esc(room?.room_password||'')+'" placeholder="Only share with assigned opponent"></label><button type="submit">Share room details</button><p class="small muted">Quick Match does not guarantee an Arena opponent. Friend Match is recommended for official fixtures.</p></form>';
-else if(active&&room)roomHtml='<div class="notice"><strong>Opponent shared room details</strong><p class="small">Method: '+esc(room.match_mode==='quick'?'Quick Match':'Friend Match')+(room.room_number?'<br>Room number: <strong>'+esc(room.room_number)+'</strong>':'')+(room.room_password?'<br>Password: <strong>'+esc(room.room_password)+'</strong>':'')+'</p><p class="small muted">Expires '+esc(time(room.expires_at))+'.</p></div>';
+else if(active&&room)roomHtml='<div class="notice"><strong>Opponent shared room details</strong><p class="small">Method: '+esc(room.match_mode==='quick'?'Quick Match':'Friend Match')+'</p>'+(room.room_number?copyableCodeField('Room number',room.room_number):'')+(room.room_password?copyableCodeField('Room password',room.room_password):'')+'<p class="small muted">Expires '+esc(time(room.expires_at))+'.</p></div>';
 else roomHtml='<p class="small muted">'+(m.status==='bye'?'BYE — advances automatically.':m.status==='confirmed'?'This match is closed.':'Waiting for the previous round to assign your opponent.')+'</p>';
 let scoreHtml='';
 const opponentReport=reports.find(r=>r.player_id!==currentUser.id);
@@ -3006,7 +3024,7 @@ async function loadOpponentDMMessages(){
  const rows=data||[];
  box.className='';box.innerHTML=rows.length?rows.map(m=>{
   const own=m.sender_id===currentUser.id, deleted=!!m.deleted_at;
-  let body=deleted?'<em class="dm-deleted">This message was deleted</em>':m.audio_path?'<audio class="dm-audio" controls preload="none" src="'+esc(sb.storage.from('community-voice').getPublicUrl(m.audio_path).data.publicUrl)+'"></audio>':'<div class="dm-message-text">'+esc(m.body)+'</div>';
+  let body=deleted?'<em class="dm-deleted">This message was deleted</em>':m.audio_path?'<audio class="dm-audio" controls preload="none" src="'+esc(sb.storage.from('community-voice').getPublicUrl(m.audio_path).data.publicUrl)+'"></audio>':renderDirectMessageBody(m.body);
   const menu=own&&!deleted?'<div class="dm-message-tools"><button type="button" class="dm-more" data-dm-menu="'+esc(m.id)+'" aria-label="Message options">⋮</button><div class="dm-menu hidden" data-dm-menu-for="'+esc(m.id)+'">'+(!m.audio_path?'<button type="button" data-dm-edit="'+esc(m.id)+'">Edit message</button>':'')+'<button type="button" data-dm-delete="'+esc(m.id)+'">Delete message</button></div></div>':'';
   return '<article class="dm-bubble '+(own?'own':'')+'" data-dm-message="'+esc(m.id)+'"><div class="dm-bubble-body">'+body+'<small>'+(own?'You':esc(dmRecipientName))+(m.edited_at&&!deleted?' · edited':'')+' · '+esc(new Date(m.created_at).toLocaleTimeString('en-KE',{timeZone:'Africa/Nairobi',hour:'2-digit',minute:'2-digit'}))+(own?' · ✓✓':'')+'</small>'+menu+'</div></article>';
  }).join(''):'<div class="empty">No messages yet. Say hello and agree on the Friend Match room code.</div>';
@@ -3016,6 +3034,16 @@ async function loadOpponentDMMessages(){
  dmLoading=false;
 }
 document.addEventListener('click',async e=>{
+ const copyButton=e.target.closest('[data-copy-code]');
+ if(copyButton){
+  const value=copyButton.dataset.copyCode||'';
+  try{
+   if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(value);
+   else {const temp=document.createElement('textarea');temp.value=value;temp.setAttribute('readonly','');temp.style.position='fixed';temp.style.opacity='0';document.body.appendChild(temp);temp.select();const ok=document.execCommand('copy');temp.remove();if(!ok)throw new Error('Copy not available');}
+   const old=copyButton.textContent;copyButton.textContent='Copied!';copyButton.classList.add('copied');setTimeout(()=>{copyButton.textContent=old;copyButton.classList.remove('copied')},1800);
+  }catch(_){window.prompt('Copy this code:',value)}
+  return;
+ }
  const b=e.target.closest('[data-opponent-message]');
  if(b){e.preventDefault();openOpponentDM(b.dataset.opponentMessage,b.dataset.opponentName);return}
  if(e.target.id==='closeOpponentDM'||e.target.id==='opponentDM'){closeOpponentDM();return}
@@ -3081,6 +3109,13 @@ document.getElementById('opponentDMCancelRecord').addEventListener('click',()=>{
 .dm-head-copy{flex:1;min-width:0}.dm-head-copy strong{display:block;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dm-head-copy small{display:block;color:#9bb0c8;font-size:11px}
 .dm-private-tag{font-size:9px;font-weight:900;letter-spacing:.08em;color:#9ef4d7;border:1px solid #168b7780;border-radius:20px;padding:5px 7px}
 #opponentDMMessages{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:15px 12px;background:radial-gradient(ellipse at top,#0a2040,#030817 72%);overscroll-behavior:contain}
+.dm-code-field{margin-top:8px;padding:8px 9px;border:1px solid #31506b;border-radius:10px;background:#06111f;max-width:100%}
+.dm-code-field label{display:block;margin-bottom:5px;color:#a9c6df;font-size:11px;font-weight:800}
+.dm-code-line{display:flex;align-items:center;gap:8px;min-width:0}
+.dm-code-line code{display:block;flex:1;min-width:0;overflow-wrap:anywhere;user-select:text;color:#fff;font-size:14px;font-weight:800;letter-spacing:.3px}
+.dm-copy-code{flex:0 0 auto;padding:7px 10px!important;border-radius:8px!important;background:#ffd21f!important;color:#071426!important;font-weight:900;font-size:12px}
+.dm-copy-code.copied{background:#8af0bd!important}
+
 .dm-bubble{display:flex;max-width:min(88%,520px);padding:10px 12px;border-radius:16px 16px 16px 5px;background:#112744;border:1px solid #214365;align-self:flex-start;overflow-wrap:anywhere;white-space:pre-wrap;color:#f5f8ff}
 .dm-bubble.own{align-self:flex-end;background:#075e4c;border-color:#14886e;border-radius:16px 16px 5px 16px}
 .dm-bubble-body{min-width:0;width:100%}.dm-bubble small{display:block;margin-top:6px;font-size:10px;opacity:.72}.dm-message-text{white-space:pre-wrap;overflow-wrap:anywhere}.dm-audio{display:block;width:min(260px,65vw);height:38px;max-width:100%}.dm-deleted{opacity:.7;font-style:italic}
