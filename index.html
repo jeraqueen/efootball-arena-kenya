@@ -2479,10 +2479,22 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
       });
       file.onchange=function(){
         var f0=file.files&&file.files[0];if(!f0)return;
+        if(f0.size>8*1024*1024){alert('Choose a profile picture smaller than 8 MB.');file.value='';return;}
         var img=new Image(),url=URL.createObjectURL(f0);
-        img.onload=function(){var z=Math.min(img.width,img.height),cv=document.createElement('canvas');cv.width=cv.height=256;cv.getContext('2d').drawImage(img,(img.width-z)/2,(img.height-z)/2,z,z,0,0,256,256);
-          try{localStorage.setItem('eaPhoto:'+(box.dataset.handle||'me'),cv.toDataURL('image/jpeg',.82));}catch(err){}
-          URL.revokeObjectURL(url);file.value='';showPhoto(box);};img.src=url;
+        img.onload=async function(){var z=Math.min(img.width,img.height),cv=document.createElement('canvas');cv.width=cv.height=256;cv.getContext('2d').drawImage(img,(img.width-z)/2,(img.height-z)/2,z,z,0,0,256,256);
+          var dataUrl=cv.toDataURL('image/jpeg',.82);try{localStorage.setItem('eaPhoto:'+(box.dataset.handle||'me'),dataUrl);}catch(err){}
+          URL.revokeObjectURL(url);file.value='';showPhoto(box);
+          try{
+            if(!currentUser)throw new Error('Sign in to save your profile picture for everyone.');
+            var blob=await (await fetch(dataUrl)).blob(),path=currentUser.id+'/avatar.jpg';
+            var up=await sb.storage.from('profile-avatars').upload(path,blob,{upsert:true,contentType:'image/jpeg',cacheControl:'3600'});
+            if(up.error)throw up.error;
+            var publicUrl=sb.storage.from('profile-avatars').getPublicUrl(path).data.publicUrl+'?v='+Date.now();
+            var saved=await sb.from('profiles').update({avatar_url:publicUrl}).eq('id',currentUser.id);
+            if(saved.error)throw saved.error;
+            box.dataset.avatarUrl=publicUrl;showPhoto(box);
+          }catch(err){console.warn('Profile photo cloud sync failed:',err.message);if(typeof message==='function')message('authNotice','Profile picture is visible on this device, but could not be synced: '+err.message,true);}
+        };img.onerror=function(){URL.revokeObjectURL(url);file.value='';alert('That image could not be opened. Please choose another one.');};img.src=url;
       };
     }
     var f=function(k){return box.querySelector('[data-f="'+k+'"]');};
@@ -2492,6 +2504,7 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
     if(lab){var blk=lab.parentElement,ls=[].filter.call(blk.querySelectorAll('*'),function(x){return !x.children.length&&txt(x)&&x!==lab;}).map(txt),m=(ls[1]||'').split(/\s*[•·]\s*/);
       if(ls[0]){setT(f('name'),ls[0]);setT(f('av'),ls[0].split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase());}
       setT(f('handle'),m[0]||'');if(m[1])setT(f('plat'),m[1]);box.dataset.handle=m[0]||ls[0]||'me';
+      if(currentUser&&!box.dataset.avatarLoaded){box.dataset.avatarLoaded='1';sb.from('profiles').select('avatar_url').eq('id',currentUser.id).maybeSingle().then(function(res){if(res.data&&res.data.avatar_url){box.dataset.avatarUrl=res.data.avatar_url;showPhoto(box);}}).catch(function(){});}
       var r=blk.parentElement;(find(RE.refresh,r)?r:blk).classList.add('ea-hide');
     }
     if(box.dataset.shown!==box.dataset.handle){box.dataset.shown=box.dataset.handle;showPhoto(box);}
@@ -2500,7 +2513,7 @@ sb.auth.onAuthStateChange((_event,session)=>{setAuthState(session?.user||null);i
     });
   }
   function showPhoto(box){
-    var a=box.querySelector('[data-f="av"]'),p=null;try{p=localStorage.getItem('eaPhoto:'+(box.dataset.handle||'me'));}catch(e){}
+    var a=box.querySelector('[data-f="av"]'),p=box.dataset.avatarUrl||null;try{if(!p)p=localStorage.getItem('eaPhoto:'+(box.dataset.handle||'me'));}catch(e){}
     a.style.backgroundImage=p?'url('+p+')':'';a.classList.toggle('has',!!p);
     var d=document.querySelector('#eaDrawer .ea-dav');if(d){d.style.backgroundImage=p?'url('+p+')':'';d.style.backgroundSize='cover';d.style.backgroundPosition='center';d.style.color=p?'transparent':'';}
   }
