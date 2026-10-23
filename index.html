@@ -2037,7 +2037,7 @@ async function loadTournaments(){const box=$('tournamentList');box.innerHTML='<d
 async function loadBracketOverview(){
 const box=$('bracketOverviewList');if(!box)return;
 if(!currentUser){box.className='empty';box.textContent='Sign in to view the pilot bracket.';return}
-const {data:t,error:te}=await sb.from('tournaments').select('id,title,status,registration_closes_at').eq('id','e730984d-7d7a-45e2-bb5a-44302c2affbb').maybeSingle();
+const {data:t,error:te}=await sb.from('tournaments').select('id,title,status,registration_closes_at').eq('id','c1dcf981-e97e-45fe-b93d-f4d1d37e740e').maybeSingle();
 if(te||!t){box.className='empty';box.textContent='The pilot tournament is not available yet.';return}
 if(!['locked','live','completed'].includes(t.status)){
  const closesAt=t.registration_closes_at?new Date(t.registration_closes_at).getTime():0;
