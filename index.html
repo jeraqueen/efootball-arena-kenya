@@ -93,6 +93,12 @@ button:not(:disabled):hover{filter:brightness(1.06);transform:translateY(-1px)}
 .chat-compose textarea{background:#091a2b;border-color:#2a4965;border-radius:14px}
 @media(max-width:600px){.panel,.tournament,.section{border-radius:15px}.chat-bubble{max-width:94%}.chat-compose{gap:6px;padding:10px}}
 
+/* Fix mobile taps: inactive intro layers must never intercept navigation or buttons. */
+#registerSplash:not(.visible),#registerSplash[style*="display: none"],#introLoader[style*="display: none"]{display:none!important;pointer-events:none!important}
+#registerSplash:not(.visible) *,#introLoader[style*="display: none"] *{pointer-events:none!important}
+.main-nav.bottom-nav{z-index:2147483646!important;pointer-events:auto!important}
+.main-nav.bottom-nav button,.app-topbar button,button,a,[role="button"],input,select,textarea{touch-action:manipulation}
+body:not(.intro-active) #registerSplash,body:not(.intro-active) #introLoader{pointer-events:none!important}
 /* Keep every chat avatar compact; uploaded profile photos must never expand over the chat list. */
 .chat-photo-avatar{display:block!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;max-width:30px!important;max-height:30px!important;flex:0 0 30px!important;object-fit:cover!important;border-radius:50%!important;overflow:hidden!important}
 .chat-avatar-wrap{display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 48px!important;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;max-width:48px!important;max-height:48px!important;overflow:hidden!important;border-radius:50%!important}
