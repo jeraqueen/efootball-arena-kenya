@@ -2061,8 +2061,8 @@ btn.disabled=true;
 const {data:m,error}=await sb.from('matches').select('id,player1_id,player2_id,match_reports(id,player_id,player_score,opponent_score)').eq('id',btn.dataset.reviewMatch).single();
 if(error||!m){message('tournamentNotice','Could not load match reports.',true);btn.disabled=false;return}
 const rs=m.match_reports||[];if(!rs.length){message('tournamentNotice','No reports to review.',true);btn.disabled=false;return}
-let chosen=rs[0];
-if(rs.length>1&&!(rs[0].player_score===rs[1].opponent_score&&rs[0].opponent_score===rs[1].player_score)){
+let chosen=rs[0];const reportsAgree=rs.length>1&&rs[0].player_score===rs[1].opponent_score&&rs[0].opponent_score===rs[1].player_score;
+if(rs.length>1&&!reportsAgree){
 const pick=prompt('Reports disagree. Enter 1 or 2 to choose the report, or Cancel to leave disputed.\n1: '+rs[0].player_score+'–'+rs[0].opponent_score+'\n2: '+rs[1].player_score+'–'+rs[1].opponent_score);
 if(pick!=='1'&&pick!=='2'){btn.disabled=false;return}chosen=rs[Number(pick)-1]
 }
@@ -2071,7 +2071,7 @@ if(p1===p2){message('tournamentNotice','A knockout draw needs a replay or admin 
 const up=await sb.from('matches').update({player1_score:p1,player2_score:p2,winner_id:p1>p2?m.player1_id:m.player2_id,status:'confirmed',dispute_reason:null,completed_at:new Date().toISOString()}).eq('id',m.id);
 if(up.error){message('tournamentNotice','Could not confirm result: '+esc(up.error.message),true);btn.disabled=false;return}
 await sb.from('match_reports').update({status:'confirmed'}).eq('match_id',m.id).eq('id',chosen.id);
-if(rs.length>1)await sb.from('match_reports').update({status:'disputed'}).eq('match_id',m.id).neq('id',chosen.id);
+if(rs.length>1){if(reportsAgree)await sb.from('match_reports').update({status:'confirmed'}).eq('match_id',m.id);else await sb.from('match_reports').update({status:'disputed'}).eq('match_id',m.id).neq('id',chosen.id);}
 message('tournamentNotice','Result confirmed.');await loadPendingResults();await loadMatches()
 }))
 }
