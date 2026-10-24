@@ -217,6 +217,33 @@ body.chat-open::before,body.chat-open::after{background-attachment:fixed!importa
 .direct-chat-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}.direct-chat-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:rgba(8,20,36,.8);border:1px solid #263b53;border-radius:14px;padding:12px;color:#eef5ff;cursor:pointer}.direct-chat-row .chat-list-copy{min-width:0;flex:1}.direct-chat-row .chat-preview-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.8}.direct-chat-row .chat-row-top{display:flex;justify-content:space-between;gap:8px}.direct-chat-empty{padding:10px 12px;color:#aabbd0;font-size:13px}
 
 .results-toggle{background:linear-gradient(100deg,#f7c65a,#ff9b48)!important;color:#1a1304!important;border:0!important;font-weight:900!important;letter-spacing:.2px}
+
+/* Premium full-time scoreboard: bold result, readable goals, explicit personal outcome. */
+.ea-result-match{padding:0!important;overflow:hidden;border:1px solid rgba(110,180,255,.34)!important;background:linear-gradient(145deg,rgba(5,16,31,.97),rgba(13,35,57,.96) 52%,rgba(8,20,35,.98))!important;box-shadow:0 14px 38px rgba(0,0,0,.32),inset 0 1px rgba(255,255,255,.06)!important}
+.ea-result-match>h3,.ea-result-match>p{margin-left:16px;margin-right:16px}
+.ea-result-match>h3{margin-top:16px;margin-bottom:4px;font-size:18px}
+.ea-result-hero{margin:12px 0 14px;padding:16px 14px 12px;background:radial-gradient(ellipse at 50% 0%,rgba(70,145,255,.18),transparent 65%),linear-gradient(180deg,rgba(4,11,22,.96),rgba(10,23,39,.94));border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.1)}
+.ea-result-verdict{display:flex;align-items:center;justify-content:center;gap:12px;text-align:left;padding:2px 0 15px}
+.ea-result-icon{display:grid;place-items:center;width:52px;height:52px;flex:0 0 52px;border-radius:16px;background:rgba(255,255,255,.08);font-size:27px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.ea-result-verdict strong{display:block;font-size:clamp(25px,6vw,34px);line-height:1.05;letter-spacing:1.4px;font-weight:1000}
+.ea-result-verdict small{display:block;margin-top:6px;color:#d2dfef;font-size:12px;line-height:1.35}
+.ea-result-hero.is-win .ea-result-verdict strong{color:#65f0b5;text-shadow:0 0 22px rgba(61,224,161,.25)}
+.ea-result-hero.is-win .ea-result-icon{background:linear-gradient(145deg,#ffe7a0,#ffb72d);color:#172033;box-shadow:0 0 24px rgba(255,196,65,.2)}
+.ea-result-hero.is-loss .ea-result-verdict strong{color:#ff858b;text-shadow:0 0 20px rgba(255,95,110,.18)}
+.ea-result-hero.is-loss .ea-result-icon{background:linear-gradient(145deg,#57242e,#241722)}
+.ea-result-hero.is-neutral .ea-result-verdict strong{color:#83c6ff}
+.ea-scoreboard{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:7px;padding:15px 8px;border-radius:18px;background:linear-gradient(100deg,rgba(25,45,68,.9),rgba(8,19,34,.94));border:1px solid rgba(126,170,216,.2)}
+.ea-score-player{display:flex;min-width:0;flex-direction:column;align-items:center;text-align:center;gap:6px}
+.ea-team-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.07);font-size:20px}
+.ea-score-player strong{max-width:100%;font-size:clamp(11px,2.8vw,14px);line-height:1.25;overflow-wrap:anywhere;color:#f3f7ff}
+.ea-score-player small{min-height:14px;font-size:9px;letter-spacing:1px;font-weight:900;color:#9fb5ce}
+.ea-score-player.score-winner .ea-team-mark{background:linear-gradient(145deg,#ffedaa,#ffb62f);box-shadow:0 0 18px rgba(255,191,57,.22)}
+.ea-score-player.score-winner small{color:#ffcf70}
+.ea-score-number{white-space:nowrap;display:flex;align-items:center;gap:7px;font-size:clamp(35px,9vw,54px);font-weight:1000;letter-spacing:-1.5px;line-height:1;color:#fff;text-shadow:0 3px 22px rgba(82,168,255,.18);font-variant-numeric:tabular-nums}
+.ea-score-number i{font-size:.55em;font-style:normal;color:#6e8aa8}
+.ea-result-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:12px 2px 0;color:#8fa8c3;font-size:10px;font-weight:800;letter-spacing:.5px}
+@media(max-width:380px){.ea-result-hero{padding:12px 9px}.ea-scoreboard{gap:3px;padding:12px 5px}.ea-score-number{gap:4px}.ea-score-player strong{font-size:10px}.ea-result-verdict strong{font-size:25px}}
+
 </style>
 <style id="arena-poster-background">
 /* ===== Blurred poster, visible everywhere ===== */
@@ -2232,7 +2259,7 @@ const box=$('matchesList');if(!box.innerHTML.trim()){box.className='empty';box.t
 let q=sb.from('matches').select('id,round_number,match_number,player1_id,player2_id,player1_score,player2_score,winner_id,status,scheduled_at,completed_at,dispute_reason,tournaments(title,match_mode),match_room_details(match_mode,room_number,room_password,shared_by,expires_at),match_reports(id,player_id,player_score,opponent_score,evidence_url,status,created_at)').or('player1_id.eq.'+currentUser.id+',player2_id.eq.'+currentUser.id).order('scheduled_at',{ascending:true,nullsFirst:false});
 if(mode==='results')q=q.eq('status','confirmed');else if(mode==='fixtures')q=q.in('status',['scheduled','in_progress','awaiting_confirmation','disputed','bye']);
 const {data,error}=await q;if(error){box.className='empty';box.textContent='Could not load fixtures: '+esc(error.message);return}
-const rows=data||[];$('fixtureCount').textContent=String(rows.filter(m=>!['confirmed','bye'].includes(m.status)).length);$('resultCount').textContent=String(rows.filter(m=>m.status==='confirmed').length);
+const rows=data||[];const playerIds=[...new Set(rows.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];let playerNames=new Map();if(playerIds.length){const {data:profiles}=await sb.from('profiles').select('id,username,display_name').in('id',playerIds);playerNames=new Map((profiles||[]).map(p=>[p.id,p.username?'@'+p.username:(p.display_name||'Arena player')]))}$('fixtureCount').textContent=String(rows.filter(m=>!['confirmed','bye'].includes(m.status)).length);$('resultCount').textContent=String(rows.filter(m=>m.status==='confirmed').length);
 if(!rows.length){box.className='empty';box.textContent=mode==='results'?'No confirmed results yet.':'No fixtures assigned yet. The admin must publish the bracket after registration closes.';return}
 box.className='grid';
 box.innerHTML=rows.map(m=>{
@@ -2249,8 +2276,16 @@ scoreHtml='<div class="notice"><strong>Your submitted report: '+esc(mine.player_
 else scoreHtml='<p class="small muted">'+(m.status==='bye'?'BYE — you advance automatically.':m.status==='confirmed'?'Official result confirmed.':'Waiting for your opponent to advance.')+'</p>';
 const myScore=m.player1_id===currentUser.id?m.player1_score:m.player2_score,opScore=m.player1_id===currentUser.id?m.player2_score:m.player1_score;
 const opponentId=m.player1_id===currentUser.id?m.player2_id:m.player1_id;
-const opponentName=opponentId?(m.player1_id===currentUser.id?'Player 2':'Player 1'):'Opponent not assigned';
-return '<article class="tournament"><span class="pill blue">'+esc(m.status.replaceAll('_',' '))+'</span><h3>'+esc(m.tournaments?.title||'Tournament match')+'</h3><p class="small">Round '+esc(m.round_number)+' • Match '+esc(m.match_number)+'</p><p class="small">You: '+(myScore??'—')+' : '+(opScore??'—')+' Opponent</p><p class="small muted">'+esc(time(m.scheduled_at))+'</p>'+(opponentId&&active?'<button type="button" class="dm-opponent-btn" data-opponent-message="'+esc(opponentId)+'" data-opponent-name="'+esc(opponentName)+'">✉ Message Opponent</button>':'')+(m.dispute_reason?'<div class="notice error">'+esc(m.dispute_reason)+'</div>':'')+roomHtml+scoreHtml+'</article>'
+const opponentName=opponentId?(playerNames.get(opponentId)||'Arena player'):'Opponent not assigned';
+const player1Name=playerNames.get(m.player1_id)||(m.player1_id===currentUser.id?'You':'Player 1');
+const player2Name=playerNames.get(m.player2_id)||(m.player2_id===currentUser.id?'You':'Player 2');
+const confirmed=m.status==='confirmed'&&m.player1_score!==null&&m.player2_score!==null;
+const won=confirmed&&m.winner_id===currentUser.id, lost=confirmed&&!!m.winner_id&&m.winner_id!==currentUser.id;
+const verdict=won?'VICTORY':lost?'DEFEAT':'RESULT CONFIRMED';
+const verdictIcon=won?'🏆':lost?'💥':'⚽';
+const verdictClass=won?'is-win':lost?'is-loss':'is-neutral';
+const resultHero=confirmed?'<section class="ea-result-hero '+verdictClass+'"><div class="ea-result-verdict"><span class="ea-result-icon">'+verdictIcon+'</span><div><strong>'+verdict+'</strong><small>'+(won?'You won this match — congratulations!':lost?'You lost this match. Come back stronger.':'Official match result')+'</small></div></div><div class="ea-scoreboard"><div class="ea-score-player '+(m.winner_id===m.player1_id?'score-winner':'')+'"><span class="ea-team-mark">'+(m.winner_id===m.player1_id?'👑':'⚽')+'</span><strong>'+esc(player1Name)+'</strong><small>'+(m.winner_id===m.player1_id?'WINNER':m.winner_id?'':'PLAYER A')+'</small></div><div class="ea-score-number">'+esc(m.player1_score)+'<i>–</i>'+esc(m.player2_score)+'</div><div class="ea-score-player '+(m.winner_id===m.player2_id?'score-winner':'')+'"><span class="ea-team-mark">'+(m.winner_id===m.player2_id?'👑':'⚽')+'</span><strong>'+esc(player2Name)+'</strong><small>'+(m.winner_id===m.player2_id?'WINNER':m.winner_id?'':'PLAYER B')+'</small></div></div><div class="ea-result-foot"><span>🏁 FINAL SCORE</span><span>'+esc(time(m.completed_at||m.scheduled_at))+'</span></div></section>':'';
+return '<article class="tournament '+(confirmed?'ea-result-match':'')+'">'+(confirmed?'':('<span class="pill blue">'+esc(m.status.replaceAll('_',' '))+'</span>'))+'<h3>'+esc(m.tournaments?.title||'Tournament match')+'</h3><p class="small">Round '+esc(m.round_number)+' • Match '+esc(m.match_number)+'</p>'+resultHero+(!confirmed?'<p class="small">You: '+(myScore??'—')+' : '+(opScore??'—')+' Opponent</p>':'')+'<p class="small muted">'+esc(time(m.scheduled_at))+'</p>'+(opponentId&&active?'<button type="button" class="dm-opponent-btn" data-opponent-message="'+esc(opponentId)+'" data-opponent-name="'+esc(opponentName)+'">✉ Message Opponent</button>':'')+(m.dispute_reason?'<div class="notice error">'+esc(m.dispute_reason)+'</div>':'')+roomHtml+scoreHtml+'</article>'
 }).join('');
 box.querySelectorAll('[data-room-form]').forEach(form=>{
  const digitInputs=Array.from(form.querySelectorAll('[name="room_digit"]'));
